@@ -1,0 +1,723 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Synthnova</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+      body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; }
+      .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+      .glass-light { background: rgba(255,255,255,0.1); }
+      .stat-card { transition: all 0.3s ease; }
+      .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+      .tab-btn.active { background: rgba(255,255,255,0.15); border-bottom: 2px solid #60a5fa; }
+      .table-row:hover { background: rgba(255,255,255,0.05); }
+      .progress-bar { transition: width 0.3s ease; }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    </style>
+</head>
+<body class="text-white p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="glass rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold mb-1">
+                        <i class="fas fa-cog mr-2"></i>
+                        Synthnova Admin
+                    </h1>
+                    <p class="text-sm opacity-75">Панель управления генератором</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="wsStatus" class="flex items-center gap-2 text-sm">
+                        <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                        <span>Connecting...</span>
+                    </div>
+                    <a href="/" class="text-sm opacity-75 hover:opacity-100">
+                        <i class="fas fa-arrow-left mr-1"></i> На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="glass stat-card rounded-xl p-4">
+                <div class="text-3xl text-blue-400 mb-2"><i class="fas fa-film"></i></div>
+                <div class="text-2xl font-bold" id="statShots">-</div>
+                <div class="text-xs opacity-75">Шотов всего</div>
+            </div>
+            <div class="glass stat-card rounded-xl p-4">
+                <div class="text-3xl text-green-400 mb-2"><i class="fas fa-video"></i></div>
+                <div class="text-2xl font-bold" id="statVideos">-</div>
+                <div class="text-xs opacity-75">Видео создано</div>
+            </div>
+            <div class="glass stat-card rounded-xl p-4">
+                <div class="text-3xl text-yellow-400 mb-2"><i class="fas fa-clock"></i></div>
+                <div class="text-2xl font-bold" id="statQueued">-</div>
+                <div class="text-xs opacity-75">В очереди</div>
+            </div>
+            <div class="glass stat-card rounded-xl p-4">
+                <div class="text-3xl text-purple-400 mb-2"><i class="fas fa-hdd"></i></div>
+                <div class="text-2xl font-bold" id="statDisk">-</div>
+                <div class="text-xs opacity-75">Место (MB)</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass rounded-xl overflow-hidden">
+            <div class="flex border-b border-white/10">
+                <button class="tab-btn active px-6 py-4 text-sm font-medium" data-tab="shots">
+                    <i class="fas fa-film mr-2"></i> Шоты
+                </button>
+                <button class="tab-btn px-6 py-4 text-sm font-medium" data-tab="jobs">
+                    <i class="fas fa-tasks mr-2"></i> Задачи
+                </button>
+                <button class="tab-btn px-6 py-4 text-sm font-medium" data-tab="queue">
+                    <i class="fas fa-stream mr-2"></i> Очередь
+                </button>
+                <button class="tab-btn px-6 py-4 text-sm font-medium" data-tab="upload">
+                    <i class="fas fa-upload mr-2"></i> Загрузка
+                </button>
+            </div>
+
+            <!-- Shots Tab -->
+            <div id="tab-shots" class="tab-content p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <select id="shotTypeFilter" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm">
+                            <option value="">Все типы</option>
+                            <option value="hook">Hook</option>
+                            <option value="mid">Mid</option>
+                            <option value="cta">CTA</option>
+                        </select>
+                        <button onclick="loadShots()" class="bg-blue-500/20 hover:bg-blue-500/30 px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-refresh mr-1"></i> Обновить
+                        </button>
+                    </div>
+                    <button id="deleteSelectedBtn" onclick="deleteSelectedShots()" class="bg-red-500/20 hover:bg-red-500/30 px-4 py-2 rounded-lg text-sm hidden">
+                        <i class="fas fa-trash mr-1"></i> Удалить выбранные
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="border-b border-white/10">
+                            <tr class="text-left opacity-75">
+                                <th class="py-3 px-2"><input type="checkbox" id="selectAllShots" onchange="toggleAllShots()"></th>
+                                <th class="py-3 px-2">ID</th>
+                                <th class="py-3 px-2">Тип</th>
+                                <th class="py-3 px-2">Файл</th>
+                                <th class="py-3 px-2">Длительность</th>
+                                <th class="py-3 px-2">Теги</th>
+                                <th class="py-3 px-2">Дата</th>
+                                <th class="py-3 px-2">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shotsTable"></tbody>
+                    </table>
+                </div>
+                <div id="shotsPagination" class="flex justify-center gap-2 mt-4"></div>
+            </div>
+
+            <!-- Jobs Tab -->
+            <div id="tab-jobs" class="tab-content p-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <select id="jobStatusFilter" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm">
+                            <option value="">Все статусы</option>
+                            <option value="queued">В очереди</option>
+                            <option value="processing">В процессе</option>
+                            <option value="completed">Завершено</option>
+                            <option value="failed">Ошибка</option>
+                            <option value="cancelled">Отменено</option>
+                        </select>
+                        <button onclick="loadJobs()" class="bg-blue-500/20 hover:bg-blue-500/30 px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-refresh mr-1"></i> Обновить
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="border-b border-white/10">
+                            <tr class="text-left opacity-75">
+                                <th class="py-3 px-2">Job ID</th>
+                                <th class="py-3 px-2">Статус</th>
+                                <th class="py-3 px-2">Прогресс</th>
+                                <th class="py-3 px-2">Видео</th>
+                                <th class="py-3 px-2">Профиль</th>
+                                <th class="py-3 px-2">Создано</th>
+                                <th class="py-3 px-2">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Queue Tab -->
+            <div id="tab-queue" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Current Job -->
+                    <div class="glass-light rounded-xl p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-play-circle mr-2 text-green-400"></i>
+                            Текущая задача
+                        </h3>
+                        <div id="currentJob">
+                            <p class="opacity-50">Нет активной задачи</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Queue List -->
+                    <div class="glass-light rounded-xl p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-list mr-2 text-yellow-400"></i>
+                            Очередь (<span id="queueCount">0</span>)
+                        </h3>
+                        <div id="queueList" class="space-y-2 max-h-64 overflow-y-auto">
+                            <p class="opacity-50">Очередь пуста</p>
+                        </div>
+                        <button onclick="clearQueue()" class="mt-4 bg-red-500/20 hover:bg-red-500/30 px-4 py-2 rounded-lg text-sm w-full">
+                            <i class="fas fa-ban mr-1"></i> Очистить очередь
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Live Progress -->
+                <div class="glass-light rounded-xl p-6 mt-6">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-chart-line mr-2 text-blue-400"></i>
+                        Live Progress
+                    </h3>
+                    <div id="liveProgress" class="space-y-2">
+                        <p class="opacity-50">Подключение к WebSocket...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="tab-upload" class="tab-content p-6 hidden">
+                <div class="max-w-xl mx-auto">
+                    <form id="uploadForm" class="glass-light rounded-xl p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-cloud-upload-alt mr-2"></i>
+                            Загрузить шоты
+                        </h3>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm mb-2">Тип шота</label>
+                            <select name="type" required class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                                <option value="hook">Hook (начало)</option>
+                                <option value="mid" selected>Mid (середина)</option>
+                                <option value="cta">CTA (финал)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm mb-2">Теги (через запятую)</label>
+                            <input type="text" name="tags" placeholder="product, demo, sale" 
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm mb-2">Видео файлы</label>
+                            <div id="dropZone" class="border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition">
+                                <i class="fas fa-file-video text-4xl mb-3 opacity-50"></i>
+                                <p class="opacity-75">Перетащите файлы или кликните для выбора</p>
+                                <p class="text-xs opacity-50 mt-1">MP4, MOV, AVI, MKV до 500MB</p>
+                                <input type="file" name="files" multiple accept="video/*" class="hidden" id="fileInput">
+                            </div>
+                            <div id="fileList" class="mt-4 space-y-2"></div>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-blue-500 py-4 rounded-lg font-bold hover:from-green-600 hover:to-blue-600 transition">
+                            <i class="fas fa-upload mr-2"></i>
+                            Загрузить
+                        </button>
+                        
+                        <div id="uploadProgress" class="mt-4 hidden">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Загрузка...</span>
+                                <span id="uploadPercent">0%</span>
+                            </div>
+                            <div class="bg-white/10 rounded-full h-2">
+                                <div id="uploadBar" class="bg-blue-500 h-2 rounded-full progress-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        const VPS_URL = '/api/admin';
+        const ADMIN_KEY = 'synthnova-admin-2026';
+        const WS_URL = 'ws://185.178.46.187:3002';
+        
+        let ws = null;
+        let selectedShots = new Set();
+        
+        // ============================================
+        // TABS
+        // ============================================
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+            });
+        });
+        
+        // ============================================
+        // WEBSOCKET
+        // ============================================
+        
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                document.getElementById('wsStatus').innerHTML = 
+                    '<span class="w-2 h-2 rounded-full bg-green-400"></span><span>Connected</span>';
+                ws.send(JSON.stringify({ type: 'get_queue' }));
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('wsStatus').innerHTML = 
+                    '<span class="w-2 h-2 rounded-full bg-red-400"></span><span>Disconnected</span>';
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = () => {
+                document.getElementById('wsStatus').innerHTML = 
+                    '<span class="w-2 h-2 rounded-full bg-red-400"></span><span>Error</span>';
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWSMessage(data);
+            };
+        }
+        
+        function handleWSMessage(data) {
+            const liveProgress = document.getElementById('liveProgress');
+            
+            switch(data.type) {
+                case 'queue_status':
+                    updateQueueDisplay(data);
+                    break;
+                case 'job_started':
+                    liveProgress.innerHTML = `
+                        <div class="bg-green-500/20 rounded-lg p-3">
+                            <i class="fas fa-play text-green-400 mr-2"></i>
+                            Задача ${data.job_id} запущена (${data.num_videos} видео)
+                        </div>
+                    `;
+                    break;
+                case 'job_progress':
+                    liveProgress.innerHTML = `
+                        <div class="bg-blue-500/20 rounded-lg p-3">
+                            <div class="flex justify-between mb-2">
+                                <span><i class="fas fa-cog fa-spin mr-2"></i>${data.job_id}</span>
+                                <span>${data.percent}%</span>
+                            </div>
+                            <div class="bg-white/10 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width:${data.percent}%"></div>
+                            </div>
+                            <div class="text-xs mt-2 opacity-75">
+                                Видео: ${data.videos_completed} / ${data.videos_total}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'video_complete':
+                    // Add to feed
+                    break;
+                case 'job_completed':
+                    liveProgress.innerHTML = `
+                        <div class="bg-green-500/20 rounded-lg p-3">
+                            <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                            Задача ${data.job_id} завершена! ${data.successful} видео создано.
+                            <a href="${data.download_url}" class="ml-2 underline">Скачать</a>
+                        </div>
+                    `;
+                    loadDashboard();
+                    break;
+                case 'job_failed':
+                    liveProgress.innerHTML = `
+                        <div class="bg-red-500/20 rounded-lg p-3">
+                            <i class="fas fa-times-circle text-red-400 mr-2"></i>
+                            Ошибка: ${data.error}
+                        </div>
+                    `;
+                    break;
+            }
+        }
+        
+        function updateQueueDisplay(data) {
+            // Current job
+            const currentJobEl = document.getElementById('currentJob');
+            if (data.current_job) {
+                currentJobEl.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="font-mono text-sm">${data.current_job.id}</div>
+                        <div class="bg-white/10 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width:${data.current_job.progress}%"></div>
+                        </div>
+                        <div class="text-xs opacity-75">
+                            ${data.current_job.videos_completed} / ${data.current_job.num_videos} видео
+                        </div>
+                    </div>
+                `;
+            } else {
+                currentJobEl.innerHTML = '<p class="opacity-50">Нет активной задачи</p>';
+            }
+            
+            // Queue
+            document.getElementById('queueCount').textContent = data.queued_count;
+            const queueListEl = document.getElementById('queueList');
+            
+            if (data.queued_jobs.length === 0) {
+                queueListEl.innerHTML = '<p class="opacity-50">Очередь пуста</p>';
+            } else {
+                queueListEl.innerHTML = data.queued_jobs.map((job, i) => `
+                    <div class="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                        <div>
+                            <span class="text-xs opacity-50">#${i + 1}</span>
+                            <span class="font-mono text-sm ml-2">${job.id}</span>
+                        </div>
+                        <span class="text-xs">${job.num_videos} видео</span>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // ============================================
+        // API CALLS
+        // ============================================
+        
+        async function loadDashboard() {
+            try {
+                const response = await axios.get(VPS_URL + '/dashboard', {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                const d = response.data.dashboard;
+                
+                document.getElementById('statShots').textContent = d.shots.total;
+                document.getElementById('statVideos').textContent = d.videos_generated;
+                document.getElementById('statQueued').textContent = d.jobs.queued;
+                document.getElementById('statDisk').textContent = d.disk_usage.total_mb;
+            } catch (error) {
+                console.error('Dashboard error:', error);
+            }
+        }
+        
+        async function loadShots(page = 1) {
+            try {
+                const type = document.getElementById('shotTypeFilter').value;
+                const url = VPS_URL + '/shots?page=' + page + '&limit=20' + (type ? '&type=' + type : '');
+                
+                const response = await axios.get(url, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                
+                const { shots, total, pages } = response.data;
+                
+                document.getElementById('shotsTable').innerHTML = shots.map(s => `
+                    <tr class="table-row border-b border-white/5">
+                        <td class="py-3 px-2">
+                            <input type="checkbox" class="shot-checkbox" value="${s.id}" onchange="updateSelection()">
+                        </td>
+                        <td class="py-3 px-2">${s.id}</td>
+                        <td class="py-3 px-2">
+                            <span class="px-2 py-1 rounded text-xs ${s.type === 'hook' ? 'bg-blue-500/30' : s.type === 'mid' ? 'bg-green-500/30' : 'bg-purple-500/30'}">
+                                ${s.type}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 font-mono text-xs">${s.filename}</td>
+                        <td class="py-3 px-2">${s.duration.toFixed(1)}s</td>
+                        <td class="py-3 px-2">
+                            ${s.tags.map(t => '<span class="bg-white/10 px-2 py-0.5 rounded text-xs mr-1">' + t + '</span>').join('')}
+                        </td>
+                        <td class="py-3 px-2 text-xs opacity-75">${new Date(s.created_at).toLocaleDateString()}</td>
+                        <td class="py-3 px-2">
+                            <button onclick="deleteShot(${s.id})" class="text-red-400 hover:text-red-300">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                // Pagination
+                let paginationHTML = '';
+                for (let i = 1; i <= pages; i++) {
+                    paginationHTML += `
+                        <button onclick="loadShots(${i})" 
+                                class="px-3 py-1 rounded ${i === page ? 'bg-blue-500' : 'bg-white/10 hover:bg-white/20'}">
+                            ${i}
+                        </button>
+                    `;
+                }
+                document.getElementById('shotsPagination').innerHTML = paginationHTML;
+                
+            } catch (error) {
+                console.error('Load shots error:', error);
+            }
+        }
+        
+        async function loadJobs() {
+            try {
+                const status = document.getElementById('jobStatusFilter').value;
+                const url = VPS_URL + '/jobs?limit=50' + (status ? '&status=' + status : '');
+                
+                const response = await axios.get(url, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                
+                const { jobs } = response.data;
+                
+                document.getElementById('jobsTable').innerHTML = jobs.map(j => `
+                    <tr class="table-row border-b border-white/5">
+                        <td class="py-3 px-2 font-mono text-xs">${j.id}</td>
+                        <td class="py-3 px-2">
+                            <span class="px-2 py-1 rounded text-xs ${getStatusClass(j.status)}">
+                                ${j.status}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2">
+                            <div class="w-24 bg-white/10 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width:${j.progress}%"></div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-2">${j.videos_completed}/${j.num_videos}</td>
+                        <td class="py-3 px-2">${j.profile}</td>
+                        <td class="py-3 px-2 text-xs opacity-75">${new Date(j.created_at).toLocaleString()}</td>
+                        <td class="py-3 px-2 space-x-2">
+                            ${j.status === 'completed' ? '<a href="/api/jobs/' + j.id + '/download" class="text-green-400"><i class="fas fa-download"></i></a>' : ''}
+                            ${['failed', 'cancelled'].includes(j.status) ? '<button onclick="retryJob(\'' + j.id + '\')" class="text-yellow-400"><i class="fas fa-redo"></i></button>' : ''}
+                            ${['completed', 'failed', 'cancelled'].includes(j.status) ? '<button onclick="deleteJob(\'' + j.id + '\')" class="text-red-400"><i class="fas fa-trash"></i></button>' : ''}
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Load jobs error:', error);
+            }
+        }
+        
+        function getStatusClass(status) {
+            const classes = {
+                queued: 'bg-yellow-500/30',
+                processing: 'bg-blue-500/30',
+                completed: 'bg-green-500/30',
+                failed: 'bg-red-500/30',
+                cancelled: 'bg-gray-500/30'
+            };
+            return classes[status] || 'bg-gray-500/30';
+        }
+        
+        async function deleteShot(id) {
+            if (!confirm('Удалить шот #' + id + '?')) return;
+            try {
+                await axios.delete(VPS_URL + '/shots/' + id, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                loadShots();
+                loadDashboard();
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            }
+        }
+        
+        async function deleteJob(id) {
+            if (!confirm('Удалить задачу ' + id + '?')) return;
+            try {
+                await axios.delete(VPS_URL + '/jobs/' + id, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                loadJobs();
+                loadDashboard();
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            }
+        }
+        
+        async function retryJob(id) {
+            try {
+                await axios.post(VPS_URL + '/jobs/' + id + '/retry', {}, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                loadJobs();
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            }
+        }
+        
+        async function clearQueue() {
+            if (!confirm('Отменить все задачи в очереди?')) return;
+            try {
+                await axios.post(VPS_URL + '/queue/clear', {}, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                if (ws) ws.send(JSON.stringify({ type: 'get_queue' }));
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            }
+        }
+        
+        function toggleAllShots() {
+            const checked = document.getElementById('selectAllShots').checked;
+            document.querySelectorAll('.shot-checkbox').forEach(cb => {
+                cb.checked = checked;
+                if (checked) selectedShots.add(parseInt(cb.value));
+                else selectedShots.delete(parseInt(cb.value));
+            });
+            updateDeleteButton();
+        }
+        
+        function updateSelection() {
+            selectedShots.clear();
+            document.querySelectorAll('.shot-checkbox:checked').forEach(cb => {
+                selectedShots.add(parseInt(cb.value));
+            });
+            updateDeleteButton();
+        }
+        
+        function updateDeleteButton() {
+            const btn = document.getElementById('deleteSelectedBtn');
+            if (selectedShots.size > 0) {
+                btn.classList.remove('hidden');
+                btn.textContent = 'Удалить (' + selectedShots.size + ')';
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+        
+        async function deleteSelectedShots() {
+            if (!confirm('Удалить ' + selectedShots.size + ' шотов?')) return;
+            try {
+                await axios.delete(VPS_URL + '/shots/batch', {
+                    headers: { 'x-admin-key': ADMIN_KEY },
+                    data: { ids: Array.from(selectedShots) }
+                });
+                selectedShots.clear();
+                loadShots();
+                loadDashboard();
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            }
+        }
+        
+        // ============================================
+        // FILE UPLOAD
+        // ============================================
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        let uploadFiles = [];
+        
+        dropZone.onclick = () => fileInput.click();
+        
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-400');
+        };
+        
+        dropZone.ondragleave = () => {
+            dropZone.classList.remove('border-blue-400');
+        };
+        
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400');
+            handleFiles(e.dataTransfer.files);
+        };
+        
+        fileInput.onchange = () => handleFiles(fileInput.files);
+        
+        function handleFiles(files) {
+            uploadFiles = Array.from(files).filter(f => f.type.startsWith('video/'));
+            renderFileList();
+        }
+        
+        function renderFileList() {
+            fileList.innerHTML = uploadFiles.map((f, i) => `
+                <div class="flex items-center justify-between bg-white/5 rounded-lg p-2">
+                    <span class="text-sm truncate">${f.name}</span>
+                    <button onclick="removeFile(${i})" class="text-red-400 ml-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        function removeFile(index) {
+            uploadFiles.splice(index, 1);
+            renderFileList();
+        }
+        
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            if (uploadFiles.length === 0) {
+                alert('Выберите файлы для загрузки');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('type', e.target.type.value);
+            formData.append('tags', e.target.tags.value);
+            uploadFiles.forEach(f => formData.append('files', f));
+            
+            const progressEl = document.getElementById('uploadProgress');
+            const barEl = document.getElementById('uploadBar');
+            const percentEl = document.getElementById('uploadPercent');
+            
+            progressEl.classList.remove('hidden');
+            
+            try {
+                await axios.post('/api/shots/upload', formData, {
+                    headers: { 'x-admin-key': ADMIN_KEY },
+                    onUploadProgress: (p) => {
+                        const percent = Math.round((p.loaded / p.total) * 100);
+                        barEl.style.width = percent + '%';
+                        percentEl.textContent = percent + '%';
+                    }
+                });
+                
+                alert('Загружено успешно!');
+                uploadFiles = [];
+                renderFileList();
+                loadShots();
+                loadDashboard();
+            } catch (error) {
+                alert('Ошибка: ' + error.response?.data?.error);
+            } finally {
+                progressEl.classList.add('hidden');
+                barEl.style.width = '0%';
+            }
+        };
+        
+        // ============================================
+        // INIT
+        // ============================================
+        
+        document.getElementById('shotTypeFilter').onchange = () => loadShots();
+        document.getElementById('jobStatusFilter').onchange = () => loadJobs();
+        
+        loadDashboard();
+        loadShots();
+        loadJobs();
+        connectWebSocket();
+    </script>
+</body>
+</html>

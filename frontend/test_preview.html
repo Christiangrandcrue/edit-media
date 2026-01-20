@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Master Video Preview</title>
+</head>
+<body>
+    <h1>Test Preview</h1>
+    <video id="testVideo" width="640" height="360" controls>
+        <source src="https://edit.synthnova.me/api/projects/project_1768734645863_ldx0s1mv/master-videos/master_1768767946016_usj9yp9y/video" type="video/mp4">
+    </video>
+    
+    <script>
+        const video = document.getElementById('testVideo');
+        video.addEventListener('loadeddata', () => {
+            console.log('✅ Video loaded successfully');
+        });
+        video.addEventListener('error', (e) => {
+            console.error('❌ Video error:', e);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+module.exports = {
+  apps: [
+    {
+      name: 'master-video-worker',
+      script: '/home/synthnova/backend/src/master-video-worker.cjs',
+      cwd: '/home/synthnova/backend/src',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+      env: {
+        NODE_ENV: 'production'
+      },
+      error_file: '/home/synthnova/logs/worker-error.log',
+      out_file: '/home/synthnova/logs/worker-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      time: true
+    },
+    {
+      name: 'scale-video-worker',
+      script: '/home/synthnova/backend/src/scale-video-worker.cjs',
+      cwd: '/home/synthnova/backend/src',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '800M',
+      env: {
+        NODE_ENV: 'production'
+      },
+      error_file: '/home/synthnova/logs/scale-worker-error.log',
+      out_file: '/home/synthnova/logs/scale-worker-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      time: true
+    }
+  ]
+};

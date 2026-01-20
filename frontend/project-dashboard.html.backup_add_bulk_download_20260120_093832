@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проект - Synthnova EDIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Навигация -->
+    <nav class="bg-white shadow-md border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/projects" class="text-2xl font-bold text-indigo-600">
+                        <i class="fas fa-video mr-2"></i>
+                        Synthnova EDIT
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/projects" class="text-gray-600 hover:text-gray-900">Проекты</a>
+                    <a href="/admin" class="text-gray-600 hover:text-gray-900">Админ</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Хлебные крошки -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                    <li class="inline-flex items-center">
+                        <a href="/projects" class="text-gray-700 hover:text-indigo-600">
+                            <i class="fas fa-folder mr-2"></i>Проекты
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span id="breadcrumb-name" class="text-gray-900 font-semibold">Загрузка...</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- Заголовок проекта -->
+        <div id="project-header" class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Загрузка...</h1>
+            <p class="text-gray-600">Идёт загрузка данных проекта...</p>
+        </div>
+
+        <!-- Вкладки -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button onclick="switchTab('assets')" id="tab-assets"
+                            class="tab-button border-b-2 border-indigo-600 text-indigo-600 py-4 px-6 font-semibold">
+                        <i class="fas fa-file-video mr-2"></i>
+                        Материалы
+                        <span id="assets-count" class="ml-2 bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs">0</span>
+                    </button>
+                    <button onclick="switchTab('masters')" id="tab-masters"
+                            class="tab-button border-b-2 border-transparent text-gray-600 hover:text-gray-900 py-4 px-6 font-semibold">
+                        <i class="fas fa-star mr-2"></i>
+                        Мастер-ролики
+                        <span id="masters-count" class="ml-2 bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">0</span>
+                    </button>
+                    <button onclick="switchTab('scale')" id="tab-scale"
+                            class="tab-button border-b-2 border-transparent text-gray-600 hover:text-gray-900 py-4 px-6 font-semibold">
+                        <i class="fas fa-clone mr-2"></i>
+                        Масштабирование
+                        <span id="scale-count" class="ml-2 bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">0</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Контент вкладок -->
+        <div id="tab-content">
+            <!-- Assets Tab -->
+            <div id="content-assets" class="tab-content">
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Материалы проекта</h2>
+                        <a href="/projects/new" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold">
+                            <i class="fas fa-plus mr-2"></i>
+                            Загрузить материалы
+                        </a>
+                    </div>
+
+                    <!-- Selection Info -->
+                    <div id="selectionInfo" class="hidden mb-4"></div>
+                    
+                    <!-- Фильтры -->
+                    <div class="flex space-x-2 mb-4">
+                        <button onclick="filterAssets('all')" class="filter-btn bg-indigo-600 text-white px-4 py-2 rounded-lg">
+                            Все
+                        </button>
+                        <button onclick="filterAssets('hook')" class="filter-btn bg-gray-100 text-gray-700 px-4 py-2 rounded-lg">
+                            <i class="fas fa-fish text-green-600 mr-1"></i>Hooks
+                        </button>
+                        <button onclick="filterAssets('mid')" class="filter-btn bg-gray-100 text-gray-700 px-4 py-2 rounded-lg">
+                            <i class="fas fa-film text-blue-600 mr-1"></i>Mids
+                        </button>
+                        <button onclick="filterAssets('cta')" class="filter-btn bg-gray-100 text-gray-700 px-4 py-2 rounded-lg">
+                            <i class="fas fa-bullhorn text-orange-600 mr-1"></i>CTAs
+                        </button>
+                    </div>
+
+                    <!-- Список материалов -->
+                    <div id="assets-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        <div class="col-span-full text-center py-8">
+                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
+                            <p class="text-gray-600 mt-2">Загрузка материалов...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Masters Tab -->
+            <div id="content-masters" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Мастер-ролики</h2>
+                        <button id="createMasterBtn" onclick="createMasterVideo()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold">
+                            <i class="fas fa-plus mr-2"></i>
+                            Создать мастер-ролик
+                        </button>
+                    </div>
+
+                    <div id="masters-list" class="space-y-4">
+                        <div class="text-center py-8">
+                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
+                            <p class="text-gray-600 mt-2">Загрузка мастер-роликов...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scale Tab -->
+            <div id="content-scale" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Масштабирование</h2>
+                    <p class="text-gray-600 mb-6">
+                        Создавайте уникальные вариации видео на основе одобренных мастер-роликов.
+                    </p>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p class="text-yellow-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Функция масштабирования будет доступна после создания и одобрения мастер-роликов.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Video Preview Modal -->
+    <div id="videoModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" onclick="closeVideoModal()">
+        <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
+            <button onclick="closeVideoModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-3xl">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="bg-gray-900 rounded-lg overflow-hidden shadow-2xl">
+                <video id="modalVideo" class="w-full" controls autoplay>
+                    <source id="modalVideoSource" src="" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <div id="modalVideoInfo" class="p-4 bg-gray-800 text-white">
+                    <h3 id="modalVideoTitle" class="font-semibold text-lg mb-2"></h3>
+                    <div class="flex items-center space-x-4 text-sm text-gray-300">
+                        <span id="modalVideoType"></span>
+                        <span id="modalVideoSize"></span>
+                        <span id="modalVideoDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ============================================================================
+        
+        // Извлечь project ID из URL (/projects/:id)
+        const pathParts = window.location.pathname.split('/');
+        const projectId = pathParts[pathParts.length - 1];
+        
+        // Проверка валидности projectId
+        if (!projectId || projectId === 'projects') {
+            alert('Project ID не найден в URL');
+            window.location.href = '/projects';
+            throw new Error('Invalid project ID');
+        }
+        
+        // Глобальные переменные
+        let projectData = null;
+        let assets = [];
+        let selectedAssets = new Set();
+        let mastersData = [];
+        let currentFilter = 'all';
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // ============================================================================
+        // TAB SWITCHING
+        // ============================================================================
+        
+        function switchTab(tabName) {
+            // Скрыть все контенты
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('border-indigo-600', 'text-indigo-600');
+                btn.classList.add('border-transparent', 'text-gray-600');
+            });
+
+            // Показать выбранный контент
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.remove('border-transparent', 'text-gray-600');
+            activeBtn.classList.add('border-indigo-600', 'text-indigo-600');
+        }
+
+        // ============================================================================
+        // ASSET MANAGEMENT
+        // ============================================================================
+        
+        function displayAssets() {
+            const container = document.getElementById('assets-list');
+            
+            // Фильтрация
+            const filtered = currentFilter === 'all' 
+                ? assets 
+                : assets.filter(a => a.asset_type === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+                        <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Нет материалов</h3>
+                        <p class="text-gray-600 mb-4">Загрузите видео-шоты для начала работы</p>
+                        <a href="/projects/new" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-plus mr-2"></i>Загрузить
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            const typeIcons = {
+                hook: '<i class="fas fa-fish text-green-600"></i>',
+                mid: '<i class="fas fa-film text-blue-600"></i>',
+                cta: '<i class="fas fa-bullhorn text-orange-600"></i>',
+                target_video: '<i class="fas fa-video text-purple-600"></i>'
+            };
+
+            container.innerHTML = filtered.map(asset => {
+            const isSelected = selectedAssets.has(asset.asset_id);
+            const icon = typeIcons[asset.asset_type] || 'fa-file';
+            const typeLabel = {
+                'hook': 'Hook',
+                'mid': 'Mid',
+                'cta': 'CTA',
+                'target_video': 'Target'
+            }[asset.asset_type] || asset.asset_type.toUpperCase();
+            
+            return `
+                <div class="bg-gray-50 border ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'} rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                    <!-- Превью с возможностью клика -->
+                    <div class="relative bg-gradient-to-br from-gray-700 to-gray-900 aspect-[3/4] cursor-pointer group" 
+                         onclick="previewAsset('${asset.asset_id}')">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-play-circle text-white text-4xl opacity-70 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                        <div class="absolute top-2 right-2">
+                            <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                                ${typeLabel}
+                            </span>
+                        </div>
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p class="text-white text-sm truncate">Нажмите для просмотра</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Информация и действия -->
+                    <div class="p-2">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="checkbox" 
+                                       id="asset-${asset.asset_id}"
+                                       ${isSelected ? 'checked' : ''}
+                                       onchange="event.stopPropagation(); toggleAssetSelection('${asset.asset_id}')"
+                                       class="w-4 h-4 text-blue-600 rounded">
+                                <i class="fas ${icon} text-gray-500"></i>
+                                <span class="text-xs font-medium text-gray-700 truncate flex-1" title="${escapeHtml(asset.original_filename)}">
+                                    ${escapeHtml(asset.original_filename)}
+                                </span>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteAsset('${asset.asset_id}')" 
+                                    class="text-red-600 hover:text-red-800 ml-2">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <div class="flex justify-between">
+                                <span>Размер: ${(asset.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                                <span>${formatDate(asset.created_at)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        updateSelectionInfo();
+            
+            updateSelectionInfo();
+        }
+
+        function toggleAssetSelection(assetId) {
+            if (selectedAssets.has(assetId)) {
+                selectedAssets.delete(assetId);
+            } else {
+                selectedAssets.add(assetId);
+            }
+            displayAssets();
+        }
+
+        function updateSelectionInfo() {
+            const selectionInfo = document.getElementById('selectionInfo');
+            
+            if (selectedAssets.size > 0) {
+                selectionInfo.classList.remove('hidden');
+                selectionInfo.innerHTML = `
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-center justify-between">
+                        <span class="text-indigo-800 font-medium">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Выбрано: ${selectedAssets.size} материалов
+                        </span>
+                        <div class="flex space-x-2">
+                            <button onclick="createMasterFromSelected()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-plus mr-1"></i>
+                                Создать мастер-ролик
+                            </button>
+                            <button onclick="clearSelection()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                                Очистить
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                selectionInfo.classList.add('hidden');
+            }
+        }
+
+        function clearSelection() {
+            selectedAssets.clear();
+            displayAssets();
+        }
+
+        function createMasterFromSelected() {
+            if (selectedAssets.size === 0) {
+                alert('Выберите материалы для создания мастер-ролика');
+                return;
+            }
+            
+            const assetIds = Array.from(selectedAssets).join(',');
+            window.location.href = `/sync-editor.html?project_id=${projectId}&asset_ids=${assetIds}`;
+        }
+
+        function filterAssets(type) {
+            currentFilter = type;
+            displayAssets();
+            
+            // Обновить UI фильтров
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-700');
+            event.target.classList.add('bg-indigo-600', 'text-white');
+        }
+
+
+        // ============================================================================
+        // VIDEO PREVIEW MODAL
+        // ============================================================================
+        
+        function previewAsset(assetId) {
+            const asset = assets.find(a => a.asset_id === assetId);
+            if (!asset) {
+                alert('Материал не найден');
+                return;
+            }
+            
+            // Используем cdn_url или API роут для проксирования
+            const videoUrl = asset.cdn_url || `/api/projects/${projectId}/assets/${asset.asset_id}/video`;
+            
+            if (!videoUrl) {
+                alert('Видео недоступно для просмотра\n\nВозможные причины:\n- Файл не загружен в хранилище\n- URL отсутствует в базе данных');
+                return;
+            }
+            
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            const source = video.querySelector('source');
+            const title = document.getElementById('modalVideoTitle');
+            const type = document.getElementById('modalVideoType');
+            const size = document.getElementById('modalVideoSize');
+            const date = document.getElementById('modalVideoDate');
+            
+            // Устанавливаем данные
+            source.src = videoUrl;
+            video.load();
+            title.textContent = asset.original_filename;
+            
+            const typeLabels = {
+                'hook': 'Hook',
+                'mid': 'Mid',
+                'cta': 'CTA',
+                'target_video': 'Target Video'
+            };
+            type.textContent = typeLabels[asset.asset_type] || asset.asset_type.toUpperCase();
+            size.textContent = (asset.file_size / 1024 / 1024).toFixed(2) + ' MB';
+            date.textContent = formatDate(asset.created_at);
+            
+            // Показываем модальное окно
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Обработчик ошибок загрузки видео
+            video.onerror = () => {
+                alert('Ошибка загрузки видео\n\nURL: ' + videoUrl + '\n\nВозможные причины:\n- Файл недоступен\n- CORS блокирует запрос\n- Неверный формат видео');
+                closeVideoModal();
+            };
+            
+            // Пытаемся воспроизвести
+            video.play().catch(err => {
+                console.error('Ошибка воспроизведения:', err);
+            });
+        }
+        
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            
+            // Остановить видео
+            video.pause();
+            video.currentTime = 0;
+            
+            // Скрыть модальное окно
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // Закрыть модальное окно по Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeVideoModal();
+            }
+        });
+
+        async function deleteAsset(assetId) {
+            if (!confirm('Удалить этот материал?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/projects/${projectId}/assets/${assetId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка удаления материала');
+                }
+
+                // Удалить из selectedAssets если был выбран
+                selectedAssets.delete(assetId);
+                
+                // Перезагрузить данные
+                await loadProject();
+            } catch (error) {
+                console.error('Error deleting asset:', error);
+                alert('Ошибка удаления материала: ' + error.message);
+            }
+        }
+
+        // ============================================================================
+        // MASTER VIDEO MANAGEMENT
+        // ============================================================================
+        
+        function createMasterVideo() {
+            window.location.href = `/sync-editor.html?project_id=${projectId}`;
+        }
+
+        function displayMasters() {
+            const container = document.getElementById('masters-list');
+
+            if (!mastersData || mastersData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-star text-gray-300 text-5xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Нет мастер-роликов</h3>
+                        <p class="text-gray-600 mb-4">Создайте первый мастер-ролик из материалов</p>
+                        <button onclick="createMasterVideo()" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-plus mr-2"></i>Создать мастер-ролик
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = mastersData.map(master => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-900 mb-2">${escapeHtml(master.name || 'Master Video')}</h3>
+                            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                                <span><i class="fas fa-clock mr-1"></i>${formatDuration(master.duration || 0)}</span>
+                                <span><i class="fas fa-calendar mr-1"></i>${formatDate(master.created_at)}</span>
+                                <span class="px-2 py-1 rounded-full text-xs ${getStatusColor(master.status)}">
+                                    ${getStatusLabel(master.status)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openMaster('${master.master_video_id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-edit mr-1"></i>Открыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openMaster(masterId) {
+            window.location.href = `/sync-editor.html?master_id=${masterId}`;
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                created: 'bg-blue-100 text-blue-800',
+                generating: 'bg-yellow-100 text-yellow-800',
+                ready: 'bg-green-100 text-green-800',
+                failed: 'bg-red-100 text-red-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                created: 'Создан',
+                generating: 'Генерация',
+                ready: 'Готов',
+                failed: 'Ошибка'
+            };
+            return labels[status] || status;
+        }
+
+        // ============================================================================
+        // DATA LOADING
+        // ============================================================================
+        
+        async function loadProject() {
+            try {
+                // Загрузка информации о проекте
+                const projectResponse = await fetch(`/api/projects/${projectId}`);
+                const projectResult = await projectResponse.json();
+                
+                if (!projectResult.success) {
+                    throw new Error('Проект не найден');
+                }
+                
+                projectData = projectResult.project;
+                
+                // Загрузка материалов проекта
+                const assetsResponse = await fetch(`/api/projects/${projectId}/assets`);
+                const assetsResult = await assetsResponse.json();
+                
+                if (!assetsResult.success) {
+                    throw new Error('Ошибка загрузки материалов');
+                }
+                
+                assets = assetsResult.assets || [];
+                
+                // Загрузка мастер-роликов
+                const mastersResponse = await fetch(`/api/projects/${projectId}/master-videos`);
+                const mastersResult = await mastersResponse.json();
+                
+                if (mastersResult.success) {
+                    mastersData = mastersResult.masterVideos || [];
+                }
+                
+                // Обновить UI
+                updateUI();
+                
+            } catch (error) {
+                console.error('Error loading project:', error);
+                alert('Ошибка загрузки проекта: ' + error.message);
+            }
+        }
+
+        function updateUI() {
+            // Обновить заголовок
+            document.querySelector('h1').textContent = projectData.name;
+            document.getElementById('breadcrumb-name').textContent = projectData.name;
+            
+            // Обновить описание
+            document.querySelector('#project-header p').textContent = projectData.description || '';
+            
+            // Обновить счётчики
+            document.getElementById('assets-count').textContent = assets.length;
+            document.getElementById('masters-count').textContent = mastersData.length;
+            document.getElementById('scale-count').textContent = '0';
+            
+            // Отобразить материалы
+            displayAssets();
+            
+            // Отобразить мастер-ролики
+            displayMasters();
+        }
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        
+        // Загрузить данные при старте
+        loadProject();
+    </script>
+</body>
+</html>

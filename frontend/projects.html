@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проекты - Synthnova EDIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Навигация -->
+    <nav class="bg-white shadow-md border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-indigo-600">
+                        <i class="fas fa-video mr-2"></i>
+                        Synthnova EDIT
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/projects" class="text-indigo-600 font-semibold">Проекты</a>
+                    <a href="/admin" class="text-gray-600 hover:text-gray-900">Админ</a>
+                    <a href="/sync-editor.html" class="text-gray-600 hover:text-gray-900">Sync Editor</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Заголовок и кнопка создания -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900">Проекты</h2>
+                <p class="text-gray-600 mt-1">Управление видео-проектами и материалами</p>
+            </div>
+            <a href="/projects/new" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                Создать проект
+            </a>
+        </div>
+
+        <!-- Статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-indigo-100 rounded-full">
+                        <i class="fas fa-folder text-indigo-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-600 text-sm">Всего проектов</p>
+                        <p id="stat-projects" class="text-2xl font-bold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <i class="fas fa-file-video text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-600 text-sm">Материалов</p>
+                        <p id="stat-assets" class="text-2xl font-bold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <i class="fas fa-star text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-600 text-sm">Мастер-роликов</p>
+                        <p id="stat-masters" class="text-2xl font-bold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i class="fas fa-clone text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-600 text-sm">Уникализаций</p>
+                        <p id="stat-scaled" class="text-2xl font-bold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список проектов -->
+        <div id="projects-list" class="space-y-4">
+            <!-- Проекты будут загружены здесь -->
+            <div class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i>
+                <p class="text-gray-600 mt-4">Загрузка проектов...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Загрузить проекты
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка загрузки проектов');
+                }
+                
+                const projects = data.projects || [];
+                displayProjects(projects);
+                updateStats(projects);
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                document.getElementById('projects-list').innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <i class="fas fa-exclamation-circle text-red-600 text-4xl mb-4"></i>
+                        <p class="text-red-800 font-semibold">Ошибка загрузки проектов</p>
+                        <p class="text-red-600 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Отобразить проекты
+        function displayProjects(projects) {
+            const container = document.getElementById('projects-list');
+            
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-lg shadow p-12 text-center">
+                        <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Нет проектов</h3>
+                        <p class="text-gray-600 mb-6">Создайте первый проект для начала работы</p>
+                        <a href="/projects/new" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg">
+                            <i class="fas fa-plus mr-2"></i>
+                            Создать проект
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = projects.map(project => `
+                <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h3 class="text-xl font-bold text-gray-900">${escapeHtml(project.name)}</h3>
+                                <span class="px-2 py-1 text-xs font-semibold rounded ${
+                                    project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                }">
+                                    ${project.status === 'active' ? 'Активен' : project.status}
+                                </span>
+                            </div>
+                            <p class="text-gray-600 mb-4">${escapeHtml(project.description || 'Без описания')}</p>
+                            
+                            <!-- Статистика проекта -->
+                            <div class="flex space-x-6 text-sm">
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-file-video mr-2 text-gray-400"></i>
+                                    <span><strong>${project.stats?.assets || 0}</strong> материалов</span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-star mr-2 text-yellow-500"></i>
+                                    <span><strong>${project.stats?.master_videos || 0}</strong> мастер-роликов</span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-clone mr-2 text-blue-500"></i>
+                                    <span><strong>${project.stats?.scaled_videos || 0}</strong> уникализаций</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Детали -->
+                            <div class="mt-4 flex items-center text-xs text-gray-500 space-x-4">
+                                <span><i class="far fa-calendar mr-1"></i>${formatDate(project.created_at)}</span>
+                                <span><i class="far fa-clock mr-1"></i>${formatDate(project.updated_at)}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Действия -->
+                        <div class="flex space-x-2 ml-4">
+                            <a href="/projects/${project.project_id}" 
+                               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-folder-open mr-2"></i>
+                                Открыть
+                            </a>
+                            <button onclick="deleteProject('${project.project_id}')" 
+                                    class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Обновить статистику
+        function updateStats(projects) {
+            let totalAssets = 0;
+            let totalMasters = 0;
+            let totalScaled = 0;
+            
+            projects.forEach(p => {
+                totalAssets += p.stats?.assets || 0;
+                totalMasters += p.stats?.master_videos || 0;
+                totalScaled += p.stats?.scaled_videos || 0;
+            });
+            
+            document.getElementById('stat-projects').textContent = projects.length;
+            document.getElementById('stat-assets').textContent = totalAssets;
+            document.getElementById('stat-masters').textContent = totalMasters;
+            document.getElementById('stat-scaled').textContent = totalScaled;
+        }
+
+        // Удалить проект
+        async function deleteProject(projectId) {
+            if (!confirm('Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка удаления проекта');
+                }
+                
+                alert('Проект успешно удалён');
+                loadProjects();
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert('Ошибка удаления проекта: ' + error.message);
+            }
+        }
+
+        // Вспомогательные функции
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Неизвестно';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Загрузить при старте
+        loadProjects();
+    </script>
+</body>
+</html>

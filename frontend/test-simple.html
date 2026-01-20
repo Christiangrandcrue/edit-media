@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body>
+    <div id="result">Loading...</div>
+    <script>
+        fetch('/api/projects')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = 
+                    `Success: ${data.success}, Projects: ${data.projects.length}`;
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML = `Error: ${err.message}`;
+            });
+    </script>
+</body>
+</html>

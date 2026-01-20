@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Просмотр сгенерированного видео</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
+            <h1 class="text-3xl font-bold text-white mb-6 flex items-center">
+                <i class="fas fa-video mr-3"></i>
+                Сгенерированное видео
+            </h1>
+            
+            <div class="bg-black rounded-xl overflow-hidden mb-6">
+                <video 
+                    id="videoPlayer" 
+                    controls 
+                    autoplay 
+                    loop
+                    class="w-full"
+                    style="max-height: 80vh;"
+                >
+                    <source src="/static/demo_video.mp4" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white/5 rounded-lg p-4">
+                    <div class="text-sm text-gray-300 mb-1">Job ID</div>
+                    <div class="text-white font-mono text-sm">job_1768715708228_e47dc4d7</div>
+                </div>
+                <div class="bg-white/5 rounded-lg p-4">
+                    <div class="text-sm text-gray-300 mb-1">Длительность</div>
+                    <div class="text-white font-bold">18.67 сек</div>
+                </div>
+                <div class="bg-white/5 rounded-lg p-4">
+                    <div class="text-sm text-gray-300 mb-1">Размер</div>
+                    <div class="text-white font-bold">10.5 MB</div>
+                </div>
+                <div class="bg-white/5 rounded-lg p-4">
+                    <div class="text-sm text-gray-300 mb-1">Разрешение</div>
+                    <div class="text-white font-bold">1080x1920</div>
+                </div>
+            </div>
+            
+            <div class="flex gap-4">
+                <a 
+                    href="/static/demo_video.mp4" 
+                    download="synthnova_video.mp4"
+                    class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition flex items-center justify-center"
+                >
+                    <i class="fas fa-download mr-2"></i>
+                    Скачать видео
+                </a>
+                <a 
+                    href="/" 
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition flex items-center justify-center"
+                >
+                    <i class="fas fa-home mr-2"></i>
+                    На главную
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/js/all.min.js"></script>
+</body>
+</html>

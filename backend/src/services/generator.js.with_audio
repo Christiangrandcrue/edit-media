@@ -1,0 +1,286 @@
+/**
+ * FFmpeg Video Generator
+ * Конкатенация шотов + уникализация через фильтры
+ */
+import path from 'path';
+import fs from 'fs';
+import { exec, spawn } from 'child_process';
+import { promisify } from 'util';
+import { buildFilterChain, randomInt } from './ffmpeg-filters.js';
+import { shots } from '../db/database.js';
+
+const execAsync = promisify(exec);
+
+const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
+const FFPROBE_PATH = process.env.FFPROBE_PATH || 'ffprobe';
+const JOBS_DIR = process.env.JOBS_DIR || '/data/jobs';
+const TEMP_DIR = '/tmp/synthnova';
+
+// Ensure temp dir exists
+if (!fs.existsSync(TEMP_DIR)) {
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
+}
+
+/**
+ * Get video duration
+ */
+async function getVideoDuration(filePath) {
+  try {
+    const cmd = `${FFPROBE_PATH} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
+    const { stdout } = await execAsync(cmd);
+    return parseFloat(stdout.trim()) || 0;
+  } catch (error) {
+    console.error('FFprobe error:', error.message);
+    return 0;
+  }
+}
+
+/**
+ * Select random shots for video
+ */
+function selectShots(hookCount = 1, midCount = 3, ctaCount = 1) {
+  const hooks = shots.getRandom('hook', hookCount);
+  const mids = shots.getRandom('mid', midCount);
+  const ctas = shots.getRandom('cta', ctaCount);
+  
+  if (hooks.length === 0 || mids.length === 0 || ctas.length === 0) {
+    throw new Error('Insufficient shots in database. Need at least 1 hook, 1 mid, 1 cta.');
+  }
+  
+  return { hooks, mids, ctas };
+}
+
+/**
+ * Create concat file for FFmpeg
+ */
+function createConcatFile(shotsList, outputPath) {
+  const content = shotsList
+    .map(shot => `file '${shot.path}'`)
+    .join('\n');
+  
+  fs.writeFileSync(outputPath, content);
+  return outputPath;
+}
+
+/**
+ * Generate single unique video
+ */
+export async function generateVideo(jobId, videoIndex, profile, onProgress) {
+  const videoNumber = String(videoIndex).padStart(4, '0');
+  const outputPath = path.join(JOBS_DIR, jobId, 'videos', `video_${videoNumber}.mp4`);
+  const tempConcatFile = path.join(TEMP_DIR, `${jobId}_${videoNumber}_concat.txt`);
+  
+  try {
+    // 1. Select random shots
+    const selectedShots = selectShots(1, randomInt(2, 4), 1);
+    const allShots = [
+      ...selectedShots.hooks,
+      ...selectedShots.mids,
+      ...selectedShots.ctas
+    ];
+    
+    // 2. Create concat file
+    createConcatFile(allShots, tempConcatFile);
+    
+    // 3. Build unique filter chain
+    const filters = buildFilterChain(profile);
+    
+    // 4. Calculate total duration for progress
+    let totalDuration = 0;
+    for (const shot of allShots) {
+      totalDuration += shot.duration || await getVideoDuration(shot.path);
+    }
+    
+    // 5. Build FFmpeg command
+    const ffmpegCmd = [
+      FFMPEG_PATH,
+      '-y',                           // Overwrite
+      '-f', 'concat',                 // Concat demuxer
+      '-safe', '0',                   // Allow absolute paths
+      '-i', tempConcatFile,           // Input concat file
+      '-vf', filters.video,           // Video filters
+      '-af', filters.audio,           // Audio filters
+      '-c:v', 'libx264',              // Video codec
+      '-preset', 'fast',              // Encoding speed
+      '-crf', '23',                   // Quality (lower = better)
+      '-c:a', 'aac',                  // Audio codec
+      '-b:a', '128k',                 // Audio bitrate
+      '-movflags', '+faststart',      // Web optimization
+      '-r', '30',                     // Frame rate
+      outputPath
+    ];
+    
+    // 6. Execute with progress tracking
+    return new Promise((resolve, reject) => {
+      const process = spawn(ffmpegCmd[0], ffmpegCmd.slice(1));
+      
+      let lastProgress = 0;
+      
+      process.stderr.on('data', (data) => {
+        const output = data.toString();
+        
+        // Parse progress from FFmpeg output
+        const timeMatch = output.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+        if (timeMatch && totalDuration > 0) {
+          const hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2]);
+          const seconds = parseFloat(timeMatch[3]);
+          const currentTime = hours * 3600 + minutes * 60 + seconds;
+          const progress = Math.min(99, Math.floor((currentTime / totalDuration) * 100));
+          
+          if (progress > lastProgress) {
+            lastProgress = progress;
+            onProgress?.({
+              video_index: videoIndex,
+              progress,
+              stage: 'encoding'
+            });
+          }
+        }
+      });
+      
+      process.on('close', (code) => {
+        // Cleanup temp file
+        if (fs.existsSync(tempConcatFile)) {
+          fs.unlinkSync(tempConcatFile);
+        }
+        
+        if (code === 0) {
+          resolve({
+            success: true,
+            video_index: videoIndex,
+            output_path: outputPath,
+            shots_used: {
+              hook_ids: selectedShots.hooks.map(s => s.id),
+              mid_ids: selectedShots.mids.map(s => s.id),
+              cta_ids: selectedShots.ctas.map(s => s.id)
+            },
+            filters_applied: filters.applied.map(f => f.filter)
+          });
+        } else {
+          reject(new Error(`FFmpeg exited with code ${code}`));
+        }
+      });
+      
+      process.on('error', (err) => {
+        reject(err);
+      });
+    });
+    
+  } catch (error) {
+    // Cleanup on error
+    if (fs.existsSync(tempConcatFile)) {
+      fs.unlinkSync(tempConcatFile);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Generate batch of videos for a job
+ */
+export async function runGeneratorJob(jobId, numVideos, profile, callbacks = {}) {
+  const { onProgress, onVideoComplete, onError, onComplete } = callbacks;
+  
+  const results = [];
+  const errors = [];
+  
+  console.log(`[Generator] Starting job ${jobId}: ${numVideos} videos, profile: ${profile}`);
+  
+  for (let i = 1; i <= numVideos; i++) {
+    try {
+      // Progress callback before start
+      onProgress?.({
+        job_id: jobId,
+        video_index: i,
+        videos_total: numVideos,
+        videos_completed: i - 1,
+        percent: Math.floor(((i - 1) / numVideos) * 100),
+        stage: 'starting'
+      });
+      
+      // Generate video
+      const result = await generateVideo(jobId, i, profile, (videoProgress) => {
+        onProgress?.({
+          job_id: jobId,
+          video_index: i,
+          videos_total: numVideos,
+          videos_completed: i - 1,
+          percent: Math.floor(((i - 1 + videoProgress.progress / 100) / numVideos) * 100),
+          stage: 'encoding',
+          current_video_progress: videoProgress.progress
+        });
+      });
+      
+      results.push(result);
+      
+      // Video complete callback
+      onVideoComplete?.({
+        job_id: jobId,
+        video_index: i,
+        videos_total: numVideos,
+        videos_completed: i,
+        result
+      });
+      
+      console.log(`[Generator] Job ${jobId}: Video ${i}/${numVideos} complete`);
+      
+    } catch (error) {
+      console.error(`[Generator] Job ${jobId}: Video ${i} failed:`, error.message);
+      
+      errors.push({
+        video_index: i,
+        error: error.message
+      });
+      
+      onError?.({
+        job_id: jobId,
+        video_index: i,
+        error: error.message
+      });
+    }
+  }
+  
+  // Final completion
+  const finalResult = {
+    job_id: jobId,
+    total_videos: numVideos,
+    successful: results.length,
+    failed: errors.length,
+    results,
+    errors
+  };
+  
+  onComplete?.(finalResult);
+  
+  console.log(`[Generator] Job ${jobId} complete: ${results.length}/${numVideos} successful`);
+  
+  return finalResult;
+}
+
+/**
+ * Check if FFmpeg is available
+ */
+export async function checkFFmpeg() {
+  try {
+    const { stdout } = await execAsync(`${FFMPEG_PATH} -version`);
+    const versionMatch = stdout.match(/ffmpeg version (\S+)/);
+    return {
+      available: true,
+      version: versionMatch ? versionMatch[1] : 'unknown',
+      path: FFMPEG_PATH
+    };
+  } catch (error) {
+    return {
+      available: false,
+      error: error.message
+    };
+  }
+}
+
+export default {
+  generateVideo,
+  runGeneratorJob,
+  checkFFmpeg,
+  selectShots
+};

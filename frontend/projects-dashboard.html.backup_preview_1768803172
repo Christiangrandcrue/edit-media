@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проекты - Synthnova EDIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 min-h-screen text-white">
+    
+    <!-- Header -->
+    <header class="bg-gray-800/50 backdrop-blur-lg border-b border-purple-500/30 sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-video text-purple-400 text-2xl"></i>
+                    <h1 class="text-2xl font-bold">Synthnova EDIT</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="window.location.href='/dashboard'" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                        <i class="fas fa-home mr-2"></i>Все проекты
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Action Panel -->
+        <div id="actionPanel" class="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-4 mb-6 hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-gray-300">
+                        <i class="fas fa-check-square mr-2"></i>
+                        Выбрано: <span id="selectedCount" class="font-semibold text-purple-400">0</span>
+                    </span>
+                    <button onclick="selectAll()" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition">
+                        <i class="fas fa-check-double mr-1"></i>Выбрать все
+                    </button>
+                    <button onclick="deselectAll()" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm transition">
+                        <i class="fas fa-times mr-1"></i>Снять выделение
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="createMasterVideo()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition">
+                        <i class="fas fa-film mr-2"></i>Создать master-ролик
+                    </button>
+                    <button onclick="deleteSelected()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition">
+                        <i class="fas fa-trash mr-2"></i>Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="projectsContainer" class="space-y-8">
+            <!-- Projects will be loaded here -->
+        </div>
+    </main>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="relative max-w-5xl w-full bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+            <button onclick="closeVideoModal()" class="absolute top-4 right-4 z-10 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <video id="modalVideo" class="w-full" controls autoplay>
+                <source id="modalVideoSource" src="" type="video/mp4">
+            </video>
+            
+            <div id="modalVideoInfo" class="p-4 bg-gray-800 text-white">
+                <h3 id="modalVideoTitle" class="font-semibold text-lg mb-2"></h3>
+                <div class="flex gap-4 text-sm text-gray-300">
+                    <span><i class="fas fa-tag mr-1"></i><span id="modalVideoType"></span></span>
+                    <span><i class="fas fa-hdd mr-1"></i><span id="modalVideoSize"></span></span>
+                    <span><i class="fas fa-calendar mr-1"></i><span id="modalVideoDate"></span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Master Video Modal -->
+    <div id="createMasterModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="relative max-w-2xl w-full bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+            <button onclick="closeMasterModal()" class="absolute top-4 right-4 z-10 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <i class="fas fa-film text-green-400"></i>
+                    Создать master-ролик
+                </h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Название master-ролика</label>
+                    <input type="text" 
+                           id="masterVideoName" 
+                           placeholder="Введите название..."
+                           class="w-full px-4 py-2 bg-gray-800 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Выбрано материалов: <span id="modalSelectedCount" class="text-purple-400">0</span></label>
+                    <div id="selectedAssetsList" class="max-h-48 overflow-y-auto bg-gray-800 rounded-lg p-3">
+                        <!-- Список выбранных материалов -->
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="submitCreateMasterVideo()" class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition">
+                        <i class="fas fa-check mr-2"></i>Создать
+                    </button>
+                    <button onclick="closeMasterModal()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-semibold transition">
+                        Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allProjects = [];
+        
+        // Load all projects
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                allProjects = data.projects || [];
+                
+                renderProjects();
+            } catch (error) {
+                console.error('Failed to load projects:', error);
+                document.getElementById('projectsContainer').innerHTML = `
+                    <div class="text-center text-red-400 p-8">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>Ошибка загрузки проектов</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Render all projects
+        function renderProjects() {
+            const container = document.getElementById('projectsContainer');
+            
+            if (allProjects.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 p-8">
+                        <i class="fas fa-folder-open text-6xl mb-4"></i>
+                        <p class="text-xl">Нет проектов</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = allProjects.map(project => `
+                <div class="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-6">
+                    <!-- Project Header -->
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-purple-500/20">
+                        <div>
+                            <h2 class="text-2xl font-bold flex items-center gap-3">
+                                <i class="fas fa-folder text-purple-400"></i>
+                                ${project.name}
+                            </h2>
+                            <p class="text-gray-400 text-sm mt-1">${project.description || 'Без описания'}</p>
+                            <div class="flex gap-4 mt-2 text-sm">
+                                <span class="text-purple-300">
+                                    <i class="fas fa-film mr-1"></i>
+                                    ${project.stats?.assets || 0} материалов
+                                </span>
+                                <span class="text-green-300">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    ${project.stats?.master_videos || 0} master-роликов
+                                </span>
+                            </div>
+                        </div>
+                        <button onclick="loadProjectDetails('${project.project_id}')" 
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                            <i class="fas fa-eye mr-2"></i>Открыть
+                        </button>
+                    </div>
+                    
+                    <!-- Project Content (будет загружено при раскрытии) -->
+                    <div id="project-${project.project_id}" class="hidden">
+                        <div class="flex items-center justify-center py-8">
+                            <i class="fas fa-spinner fa-spin text-3xl text-purple-400"></i>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load project details (assets + master videos)
+        async function loadProjectDetails(projectId) {
+            const container = document.getElementById(`project-${projectId}`);
+            
+            // Toggle visibility
+            if (!container.classList.contains('hidden')) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            
+            try {
+                // Load assets and master videos in parallel
+                const [assetsRes, masterRes] = await Promise.all([
+                    fetch(`/api/projects/${projectId}/assets`),
+                    fetch(`/api/projects/${projectId}/master-videos`)
+                ]);
+                
+                const assetsData = await assetsRes.json();
+                const masterData = await masterRes.json();
+                
+                const assets = assetsData.assets || [];
+                const masterVideos = masterData.master_videos || [];
+                
+                // Group assets by type
+                const hooks = assets.filter(a => a.asset_type === 'hook');
+                const mids = assets.filter(a => a.asset_type === 'mid');
+                const ctas = assets.filter(a => a.asset_type === 'cta');
+                const targets = assets.filter(a => a.asset_type === 'target_video');
+                
+                container.innerHTML = `
+                    <!-- Materials Section -->
+                    <div class="space-y-6">
+                        ${renderMaterialsSection('Hooks', hooks, projectId)}
+                        ${renderMaterialsSection('Mids', mids, projectId)}
+                        ${renderMaterialsSection('CTAs', ctas, projectId)}
+                        ${renderMaterialsSection('Target Videos', targets, projectId)}
+                        ${renderMasterVideosSection(masterVideos, projectId)}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load project details:', error);
+                container.innerHTML = `
+                    <div class="text-center text-red-400 p-4">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Ошибка загрузки материалов
+                    </div>
+                `;
+            }
+        }
+        
+        // Render materials section
+        function renderMaterialsSection(title, materials, projectId) {
+            if (materials.length === 0) return '';
+            
+            return `
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                        <i class="fas fa-layer-group text-purple-400"></i>
+                        ${title} <span class="text-sm text-gray-400">(${materials.length})</span>
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        ${materials.map(asset => `
+                            <div class="relative group">
+                                <!-- Чекбокс -->
+                                <div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation()">
+                                    <input type="checkbox" 
+                                           id="asset-${asset.asset_id}" 
+                                           class="asset-checkbox w-5 h-5 cursor-pointer"
+                                           data-asset-id="${asset.asset_id}"
+                                           data-project-id="${projectId}"
+                                           onchange="toggleAssetSelection('${asset.asset_id}', '${projectId}')">
+                                </div>
+                                
+                                <div onclick="previewAsset('${asset.asset_id}', '${projectId}')" 
+                                     class="relative aspect-[3/4] bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-play-circle text-white text-4xl group-hover:scale-125 transition-transform"></i>
+                                    </div>
+                                    <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs">
+                                        ${asset.asset_type.toUpperCase()}
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-300 mt-1 truncate" title="${asset.original_filename}">
+                                    ${asset.original_filename}
+                                </p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        
+        // Progress tracking
+        let activePolling = new Set();
+        
+        function startPolling(projectId, masterId) {
+            const key = `${projectId}:${masterId}`;
+            if (activePolling.has(key)) return;
+            
+            activePolling.add(key);
+            console.log(`🔄 Started polling for ${masterId}`);
+            
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/projects/${projectId}/master-videos/${masterId}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.master_video) {
+                        const status = data.master_video.status;
+                        const updatedAt = new Date(data.master_video.updated_at);
+                        
+                        const timestampEl = document.getElementById(`timestamp-${masterId}`);
+                        if (timestampEl) {
+                            timestampEl.textContent = `обновлено ${getTimeAgo(updatedAt)}`;
+                        }
+                        
+                        if (status === 'completed' || status === 'failed') {
+                            console.log(`✅ Polling stopped for ${masterId}: ${status}`);
+                            clearInterval(pollInterval);
+                            activePolling.delete(key);
+                            loadProject(projectId);
+                            
+                            if (status === 'completed') {
+                                showNotification('✅ Master-ролик готов!', 'success');
+                            } else {
+                                showNotification('❌ Ошибка обработки', 'error');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 5000);
+            
+            setTimeout(() => {
+                clearInterval(pollInterval);
+                activePolling.delete(key);
+            }, 30 * 60 * 1000);
+        }
+        
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'только что';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} мин. назад`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч. назад`;
+            return `${Math.floor(seconds / 86400)} дн. назад`;
+        }
+
+        // Render master videos section
+        function renderMasterVideosSection(masterVideos, projectId) {
+            if (masterVideos.length === 0) {
+                return `
+                    <div class="bg-gray-700/30 rounded-lg p-6 text-center">
+                        <i class="fas fa-film text-4xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-400">Нет master-роликов</p>
+                        <button class="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                            <i class="fas fa-plus mr-2"></i>Создать master-ролик
+                        </button>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                        <i class="fas fa-video text-green-400"></i>
+                        Master-ролики <span class="text-sm text-gray-400">(${masterVideos.length})</span>
+                    </h3>
+                    <div class="space-y-3">
+                        ${masterVideos.map(master => {
+                            const statusColors = {
+                                'created': 'bg-blue-500',
+                                'pending': 'bg-yellow-500',
+                                'processing': 'bg-orange-500',
+                                'completed': 'bg-green-500',
+                                'failed': 'bg-red-500'
+                            };
+                            
+                            const statusTexts = {
+                                'created': 'Создан',
+                                'pending': 'В очереди',
+                                'processing': 'Обработка',
+                                'completed': 'Готов',
+                                'failed': 'Ошибка'
+                            };
+                            
+                            const statusColor = statusColors[master.status] || 'bg-gray-500';
+                            const statusText = statusTexts[master.status] || master.status;
+                            
+                            return `
+                            <div class="bg-gray-700/50 rounded-lg p-4 flex items-center justify-between hover:bg-gray-700/70 transition">
+                                <div class="flex items-center gap-4 flex-1">
+                                    <div class="w-32 aspect-video bg-gradient-to-br from-green-600 to-teal-600 rounded flex items-center justify-center relative">
+                                        <i class="fas fa-film text-2xl"></i>
+                                        ${master.status === 'processing' ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><i class="fas fa-spinner fa-spin text-xl"></i></div>' : ''}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold">${master.name}</h4>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <span class="${statusColor} text-white text-xs px-2 py-1 rounded">
+                                                ${statusText}
+                                            </span>
+                                            <span class="text-xs text-gray-400">
+                                                ${new Date(master.created_at).toLocaleDateString('ru-RU')}
+                                            </span>
+                                            <span class="text-xs text-gray-400">
+                                                ${master.shots_config.length} материалов
+                                            </span>
+                                            <span class="text-xs text-gray-500" id="timestamp-${master.master_id}">
+                                                <i class="fas fa-clock mr-1"></i>обновлено ${getTimeAgo(new Date(master.updated_at))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    ${master.status === 'completed' ? `
+                                        <button onclick="previewMasterVideo('${master.master_id}', '${projectId}')" 
+                                                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+                                            <i class="fas fa-play mr-2"></i>Просмотр
+                                        </button>
+                                        <button onclick="downloadMasterVideo('${master.master_id}', '${projectId}')" 
+                                                class="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                                            <i class="fas fa-download mr-2"></i>Скачать
+                                        </button>
+                                    ` : master.status === 'processing' ? `
+                                        <button class="px-3 py-2 bg-gray-600 cursor-not-allowed rounded-lg" disabled>
+                                            <i class="fas fa-spinner fa-spin mr-2"></i>Обработка...
+                                        </button>
+                                    ` : master.status === 'failed' ? `
+                                        <button onclick="retryMasterVideo('${master.master_id}', '${projectId}')" 
+                                                class="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition">
+                                            <i class="fas fa-redo mr-2"></i>Повторить
+                                        </button>
+                                    ` : `
+                                        <button class="px-3 py-2 bg-gray-600 cursor-not-allowed rounded-lg" disabled>
+                                            <i class="fas fa-clock mr-2"></i>Ожидание
+                                        </button>
+                                    `}
+                                    <button onclick="deleteMasterVideo('${master.master_id}', '${projectId}')" 
+                                            class="px-3 py-2 bg-red-600/50 hover:bg-red-600 rounded-lg transition">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Preview asset
+        function previewAsset(assetId, projectId) {
+            fetch(`/api/projects/${projectId}/assets`)
+                .then(res => res.json())
+                .then(data => {
+                    const asset = data.assets.find(a => a.asset_id === assetId);
+                    if (!asset) return;
+                    
+                    const modal = document.getElementById('videoModal');
+                    const video = document.getElementById('modalVideo');
+                    const source = document.getElementById('modalVideoSource');
+                    
+                    const videoUrl = asset.cdn_url || `/api/projects/${projectId}/assets/${asset.asset_id}/video`;
+                    
+                    source.src = videoUrl;
+                    video.load();
+                    
+                    document.getElementById('modalVideoTitle').textContent = asset.original_filename;
+                    document.getElementById('modalVideoType').textContent = asset.asset_type.toUpperCase();
+                    document.getElementById('modalVideoSize').textContent = `${(asset.file_size / 1024 / 1024).toFixed(2)} MB`;
+                    document.getElementById('modalVideoDate').textContent = new Date(asset.created_at).toLocaleDateString('ru-RU');
+                    
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    
+                    video.onerror = () => {
+                        alert(`Видео недоступно: ${videoUrl}. Возможно файл не загружен в хранилище или URL отсутствует в БД.`);
+                    };
+                    
+                    video.play().catch(err => console.error('Play error:', err));
+                });
+        }
+        
+        // Preview master video
+        async function previewMasterVideo(masterId, projectId) {
+            try {
+                const response = await fetch(`/api/projects/${projectId}/master-videos/${masterId}`);
+                const data = await response.json();
+                
+                if (data.success && data.master_video.video_path) {
+                    const modal = document.getElementById('videoModal');
+                    const video = document.getElementById('modalVideo');
+                    const source = document.getElementById('modalVideoSource');
+                    
+                    source.src = data.master_video.video_path;
+                    video.load();
+                    
+                    document.getElementById('modalVideoTitle').textContent = data.master_video.name;
+                    document.getElementById('modalVideoType').textContent = 'MASTER VIDEO';
+                    document.getElementById('modalVideoSize').textContent = '';
+                    document.getElementById('modalVideoDate').textContent = new Date(data.master_video.created_at).toLocaleDateString('ru-RU');
+                    
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    
+                    video.play().catch(err => console.error('Play error:', err));
+                } else {
+                    showNotification('Видео ещё не готово', 'warning');
+                }
+            } catch (error) {
+                console.error('Failed to load master video:', error);
+                showNotification('Ошибка загрузки видео', 'error');
+            }
+        }
+        
+        function downloadMasterVideo(masterId, projectId) {
+            showNotification('Скачивание начато...', 'info');
+            window.location.href = `/api/projects/${projectId}/master-videos/${masterId}/download`;
+        }
+        
+        function retryMasterVideo(masterId, projectId) {
+            showNotification('Повтор обработки (в разработке)', 'info');
+        }
+        
+        async function deleteMasterVideo(masterId, projectId) {
+            if (!confirm('Удалить master-ролик?')) return;
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}/master-videos/${masterId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Master-ролик удалён', 'success');
+                    loadProjectDetails(projectId);
+                } else {
+                    showNotification('Ошибка удаления', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete master video:', error);
+                showNotification('Ошибка удаления', 'error');
+            }
+        }
+        
+        // Cut master video (scale)
+        let currentScaleMaster = null;
+        let currentScaleProject = null;
+        
+        async function cutMasterVideo(masterId, projectId) {
+            currentScaleMaster = masterId;
+            currentScaleProject = projectId;
+            
+            // Загружаем информацию о master-видео
+            try {
+                const response = await fetch(`/api/projects/${projectId}/master-videos/${masterId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('scaleMasterName').textContent = data.master_video.name;
+                    document.getElementById('scaleCount').value = 10;
+                    document.getElementById('scaleCountValue').textContent = '10';
+                    
+                    const modal = document.getElementById('scaleModal');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                } else {
+                    showNotification('Ошибка загрузки master-ролика', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load master video:', error);
+                showNotification('Ошибка загрузки master-ролика', 'error');
+            }
+        }
+        
+        function closeScaleModal() {
+            const modal = document.getElementById('scaleModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            currentScaleMaster = null;
+            currentScaleProject = null;
+        }
+        
+        async function submitScale() {
+            const count = parseInt(document.getElementById('scaleCount').value);
+            
+            if (count < 1 || count > 100) {
+                showNotification('Количество должно быть от 1 до 100', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/projects/${currentScaleProject}/scale`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        master_video_id: currentScaleMaster,
+                        count: count
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeScaleModal();
+                    showNotification(`✅ Запущена генерация ${count} роликов!`, 'success');
+                    
+                    // Показываем информацию о задаче
+                    setTimeout(() => {
+                        showNotification(`Job ID: ${data.job.job_id} - статус: ${data.job.status}`, 'info');
+                    }, 1000);
+                } else {
+                    showNotification(`❌ Ошибка: ${data.error || 'Не удалось запустить нарезку'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to start scaling:', error);
+                showNotification('❌ Ошибка при запуске нарезки', 'error');
+            }
+        }
+        
+        // Close video modal
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            
+            video.pause();
+            video.currentTime = 0;
+            
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // Close modals on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeVideoModal();
+                closeMasterModal();
+                closeScaleModal();
+            }
+        });
+        
+        // Selection management
+        let selectedAssets = new Set();
+        
+        function toggleAssetSelection(assetId, projectId) {
+            const key = `${projectId}:${assetId}`;
+            if (selectedAssets.has(key)) {
+                selectedAssets.delete(key);
+            } else {
+                selectedAssets.add(key);
+            }
+            updateSelectionUI();
+        }
+        
+        function updateSelectionUI() {
+            const count = selectedAssets.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('actionPanel').classList.toggle('hidden', count === 0);
+        }
+        
+        function selectAll() {
+            document.querySelectorAll('.asset-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+                const projectId = checkbox.dataset.projectId;
+                const assetId = checkbox.dataset.assetId;
+                selectedAssets.add(`${projectId}:${assetId}`);
+            });
+            updateSelectionUI();
+        }
+        
+        function deselectAll() {
+            document.querySelectorAll('.asset-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            selectedAssets.clear();
+            updateSelectionUI();
+        }
+        
+        function createMasterVideo() {
+            if (selectedAssets.size === 0) {
+                alert('Выберите материалы для создания master-ролика');
+                return;
+            }
+            
+            // Показываем модальное окно
+            const modal = document.getElementById('createMasterModal');
+            document.getElementById('modalSelectedCount').textContent = selectedAssets.size;
+            
+            // Загружаем список выбранных материалов
+            loadSelectedAssetsList();
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        async function loadSelectedAssetsList() {
+            const container = document.getElementById('selectedAssetsList');
+            container.innerHTML = '<div class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Загрузка...</div>';
+            
+            const assetsByProject = {};
+            
+            // Группируем по проектам
+            for (const key of selectedAssets) {
+                const [projectId, assetId] = key.split(':');
+                if (!assetsByProject[projectId]) {
+                    assetsByProject[projectId] = [];
+                }
+                assetsByProject[projectId].push(assetId);
+            }
+            
+            // Загружаем данные материалов
+            const assetsData = [];
+            for (const [projectId, assetIds] of Object.entries(assetsByProject)) {
+                try {
+                    const response = await fetch(`/api/projects/${projectId}/assets`);
+                    const data = await response.json();
+                    const projectAssets = data.assets.filter(a => assetIds.includes(a.asset_id));
+                    assetsData.push(...projectAssets.map(a => ({ ...a, projectId })));
+                } catch (error) {
+                    console.error('Failed to load assets:', error);
+                }
+            }
+            
+            // Отображаем список
+            container.innerHTML = assetsData.map((asset, index) => `
+                <div class="flex items-center gap-3 p-2 bg-gray-700/50 rounded mb-2">
+                    <span class="text-gray-400 text-sm font-semibold">${index + 1}.</span>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold">${asset.original_filename}</p>
+                        <p class="text-xs text-gray-400">${asset.asset_type.toUpperCase()}</p>
+                    </div>
+                    <span class="text-xs text-purple-400">${(asset.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                </div>
+            `).join('');
+        }
+        
+        function closeMasterModal() {
+            const modal = document.getElementById('createMasterModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('masterVideoName').value = '';
+        }
+        
+        async function submitCreateMasterVideo() {
+            const name = document.getElementById('masterVideoName').value.trim();
+            
+            if (!name) {
+                alert('Введите название master-ролика');
+                return;
+            }
+            
+            const selectedList = Array.from(selectedAssets).map(key => {
+                const [projectId, assetId] = key.split(':');
+                return { projectId, assetId };
+            });
+            
+            // Получаем первый проект (все материалы должны быть из одного проекта)
+            const projectId = selectedList[0].projectId;
+            
+            // Формируем shots_config
+            const shots_config = selectedList.map(item => item.assetId);
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}/master-videos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        shots_config: shots_config,
+                        metadata: {
+                            created_from: 'dashboard',
+                            selected_count: selectedAssets.size
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeMasterModal();
+                    deselectAll();
+                    
+                    // Показываем уведомление
+                    showNotification(`✅ Master-ролик "${name}" успешно создан!`, 'success');
+                    
+                    // Перезагружаем проект для обновления списка master-videos
+                    // Проект должен быть открыт, находим его контейнер
+                    const projectContainer = document.getElementById(`project-${projectId}`);
+                    if (projectContainer && !projectContainer.classList.contains('hidden')) {
+                        loadProjectDetails(projectId);
+                    }
+                } else {
+                    alert(`❌ Ошибка: ${data.error || 'Не удалось создать master-ролик'}`);
+                }
+            } catch (error) {
+                console.error('Failed to create master video:', error);
+                alert('❌ Ошибка при создании master-ролика');
+            }
+        }
+        
+        function deleteSelected() {
+            if (selectedAssets.size === 0) {
+                alert('Выберите материалы для удаления');
+                return;
+            }
+            
+            if (!confirm(`Удалить ${selectedAssets.size} материалов?`)) {
+                return;
+            }
+            
+            const selectedList = Array.from(selectedAssets).map(key => {
+                const [projectId, assetId] = key.split(':');
+                return { projectId, assetId };
+            });
+            
+            console.log('Deleting:', selectedList);
+            alert(`Удаление ${selectedAssets.size} материалов (в разработке)`);
+        }
+        
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const id = `notif-${Date.now()}`;
+            
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600',
+                warning: 'bg-yellow-600'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle',
+                warning: 'fa-exclamation-triangle'
+            };
+            
+            const notification = document.createElement('div');
+            notification.id = id;
+            notification.className = `${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] animate-slide-in`;
+            notification.innerHTML = `
+                <i class="fas ${icons[type]} text-xl"></i>
+                <span class="flex-1">${message}</span>
+                <button onclick="this.parentElement.remove()" class="hover:bg-white/20 rounded p-1">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Автоматически удаляем через 5 секунд
+            setTimeout(() => {
+                const notif = document.getElementById(id);
+                if (notif) {
+                    notif.style.animation = 'slide-out 0.3s ease-out';
+                    setTimeout(() => notif.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // Setup modal event listeners after DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const videoModal = document.getElementById('videoModal');
+            if (videoModal) {
+                videoModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'videoModal') closeVideoModal();
+                });
+            }
+            
+            const createMasterModal = document.getElementById('createMasterModal');
+            if (createMasterModal) {
+                createMasterModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'createMasterModal') closeMasterModal();
+                });
+            }
+            
+            const scaleModal = document.getElementById('scaleModal');
+            if (scaleModal) {
+                scaleModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'scaleModal') closeScaleModal();
+                });
+            }
+            
+            // Initialize after DOM is ready
+            loadProjects();
+        });
+    </script>
+    
+    <style>
+        @keyframes slide-in {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slide-out {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
+    </style>
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- Уведомления будут добавляться здесь -->
+    </div>
+
+</body>
+</html>

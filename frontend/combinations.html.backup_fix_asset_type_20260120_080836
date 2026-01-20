@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комбинаторика с перестановками - Synthnova EDIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .nav-link { transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-link.active { background: rgba(255, 255, 255, 0.2); border-bottom: 2px solid #fff; }
+        .asset-checkbox:checked + label { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
+        .mid-count-checkbox:checked + label { border-color: #10b981; background: rgba(16, 185, 129, 0.2); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 min-h-screen text-white">
+    
+    <!-- Global Navigation -->
+    <nav class="sticky top-0 z-50 glass border-b border-purple-500/20">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <a href="/dashboard" class="flex items-center space-x-2 text-xl font-bold">
+                    <i class="fas fa-film text-purple-400"></i>
+                    <span class="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                        Synthnova EDIT
+                    </span>
+                </a>
+                
+                <!-- Desktop Navigation Links -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <a href="/dashboard" class="nav-link px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Проекты</span>
+                    </a>
+                    <a href="/combinatorics" class="nav-link active px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-shuffle"></i>
+                        <span>Комбинаторика</span>
+                    </a>
+                    <a href="/admin" class="nav-link px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-cog"></i>
+                        <span>Админ</span>
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden mt-4 space-y-2">
+                <a href="/dashboard" class="nav-link block px-4 py-2 rounded-lg">
+                    <i class="fas fa-folder-open mr-2"></i>Проекты
+                </a>
+                <a href="/combinatorics" class="nav-link active block px-4 py-2 rounded-lg">
+                    <i class="fas fa-shuffle mr-2"></i>Комбинаторика
+                </a>
+                <a href="/admin" class="nav-link block px-4 py-2 rounded-lg">
+                    <i class="fas fa-cog mr-2"></i>Админ
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-puzzle-piece mr-3 text-purple-400"></i>
+                Комбинаторика с перестановками
+            </h1>
+            <p class="text-purple-200 text-lg">
+                Hook × [Mid₁, Mid₂, ...] × CTA = Тысячи уникальных мастер-роликов
+            </p>
+            <p class="text-purple-300 text-sm mt-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                Порядок имеет значение: [A,B] ≠ [B,A]
+            </p>
+        </div>
+
+        <!-- Step 1: Select Project -->
+        <div class="glass rounded-xl p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-folder mr-2 text-blue-400"></i>
+                Шаг 1: Выберите проект
+            </h2>
+            <select id="projectSelect" class="w-full bg-gray-800/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500">
+                <option value="">-- Выберите проект --</option>
+            </select>
+        </div>
+
+        <!-- Step 2: Select Materials (Hidden initially) -->
+        <div id="assetsSection" class="hidden">
+            <div class="glass rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4">
+                    <i class="fas fa-images mr-2 text-green-400"></i>
+                    Шаг 2: Выберите материалы
+                </h2>
+
+                <!-- Hooks -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold mb-3 text-purple-300">
+                        <i class="fas fa-play-circle mr-2"></i>
+                        Hooks (начало)
+                    </h3>
+                    <div id="hooksList" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <p class="text-gray-400">Загрузка...</p>
+                    </div>
+                </div>
+
+                <!-- Mids -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-300">
+                        <i class="fas fa-film mr-2"></i>
+                        Mids (середина)
+                    </h3>
+                    <div id="midsList" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <p class="text-gray-400">Загрузка...</p>
+                    </div>
+                </div>
+
+                <!-- CTAs -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-3 text-yellow-300">
+                        <i class="fas fa-flag-checkered mr-2"></i>
+                        CTAs (призыв к действию)
+                    </h3>
+                    <div id="ctasList" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <p class="text-gray-400">Загрузка...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Configuration & Generation -->
+            <div class="glass rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6">
+                    <i class="fas fa-sliders-h mr-2 text-yellow-400"></i>
+                    Шаг 3: Настройка Mid-блоков
+                </h2>
+
+                <!-- Mid Counts Configuration -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 text-blue-300">
+                        <i class="fas fa-list-ol mr-2"></i>
+                        Количество Mid-шотов в ролике (выберите один или несколько):
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- 1 Mid -->
+                        <div>
+                            <input type="checkbox" id="midCount1" class="mid-count-checkbox hidden" data-count="1">
+                            <label for="midCount1" class="block glass rounded-lg p-4 cursor-pointer border-2 border-transparent hover:border-green-500/50 transition-all">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-green-400 mb-2">1</div>
+                                    <div class="text-sm text-gray-300 mb-1">Mid-шот</div>
+                                    <div id="count1Rolls" class="text-xs text-gray-400">0 роликов</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- 2 Mids -->
+                        <div>
+                            <input type="checkbox" id="midCount2" class="mid-count-checkbox hidden" data-count="2">
+                            <label for="midCount2" class="block glass rounded-lg p-4 cursor-pointer border-2 border-transparent hover:border-green-500/50 transition-all">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-green-400 mb-2">2</div>
+                                    <div class="text-sm text-gray-300 mb-1">Mid-шота</div>
+                                    <div id="count2Rolls" class="text-xs text-gray-400">0 роликов</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- 3 Mids -->
+                        <div>
+                            <input type="checkbox" id="midCount3" class="mid-count-checkbox hidden" data-count="3">
+                            <label for="midCount3" class="block glass rounded-lg p-4 cursor-pointer border-2 border-transparent hover:border-green-500/50 transition-all">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-green-400 mb-2">3</div>
+                                    <div class="text-sm text-gray-300 mb-1">Mid-шота</div>
+                                    <div id="count3Rolls" class="text-xs text-gray-400">0 роликов</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- 4 Mids -->
+                        <div>
+                            <input type="checkbox" id="midCount4" class="mid-count-checkbox hidden" data-count="4">
+                            <label for="midCount4" class="block glass rounded-lg p-4 cursor-pointer border-2 border-transparent hover:border-green-500/50 transition-all">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-green-400 mb-2">4</div>
+                                    <div class="text-sm text-gray-300 mb-1">Mid-шота</div>
+                                    <div id="count4Rolls" class="text-xs text-gray-400">0 роликов</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculator -->
+                <div class="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-calculator mr-2"></i>
+                        Калькулятор комбинаций
+                    </h3>
+                    
+                    <!-- Summary -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300 mb-1">Hooks выбрано</div>
+                            <div id="selectedHooks" class="text-3xl font-bold text-purple-400">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300 mb-1">Mids выбрано</div>
+                            <div id="selectedMids" class="text-3xl font-bold text-blue-400">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300 mb-1">CTAs выбрано</div>
+                            <div id="selectedCtas" class="text-3xl font-bold text-yellow-400">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300 mb-1">Всего роликов</div>
+                            <div id="totalCombinations" class="text-3xl font-bold text-green-400">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown -->
+                    <div id="breakdownSection" class="hidden border-t border-white/10 pt-4">
+                        <h4 class="text-sm font-semibold text-gray-300 mb-2">
+                            <i class="fas fa-list mr-1"></i>
+                            Разбивка по количеству Mid-шотов:
+                        </h4>
+                        <ul id="breakdownList" class="space-y-1 text-sm text-gray-300"></ul>
+                    </div>
+
+                    <!-- Warning -->
+                    <div id="warningBlock" class="hidden mt-4 bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-4">
+                        <div class="flex items-start space-x-2">
+                            <i class="fas fa-exclamation-triangle text-yellow-400 mt-1"></i>
+                            <div>
+                                <p class="font-semibold text-yellow-300">Внимание: большое количество роликов!</p>
+                                <p id="warningText" class="text-sm text-gray-300 mt-1"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" disabled class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100">
+                    <i class="fas fa-magic mr-2"></i>
+                    <span id="generateBtnText">Создать комбинации</span>
+                    <i id="generateSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                </button>
+            </div>
+
+            <!-- Active Jobs -->
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-4">
+                    <i class="fas fa-tasks mr-2 text-blue-400"></i>
+                    Активные задания
+                </h2>
+                <div id="activeJobs">
+                    <p class="text-gray-400 text-center py-4">Нет активных заданий</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProjectId = null;
+        let allAssets = [];
+
+        // Mobile menu toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Highlight active page
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+
+        // Factorial function
+        function factorial(n) {
+            if (n <= 1) return 1;
+            return n * factorial(n - 1);
+        }
+
+        // Permutations P(n, k) = n! / (n-k)!
+        function permutations(n, k) {
+            if (k > n) return 0;
+            return factorial(n) / factorial(n - k);
+        }
+
+        // Update calculator
+        function updateCalculator() {
+            const selectedHooks = document.querySelectorAll('.hook-checkbox:checked').length;
+            const selectedMids = document.querySelectorAll('.mid-checkbox:checked').length;
+            const selectedCtas = document.querySelectorAll('.cta-checkbox:checked').length;
+
+            // Update display
+            document.getElementById('selectedHooks').textContent = selectedHooks;
+            document.getElementById('selectedMids').textContent = selectedMids;
+            document.getElementById('selectedCtas').textContent = selectedCtas;
+
+            // Calculate permutations for each selected mid count
+            let totalVideos = 0;
+            let breakdown = [];
+
+            for (let i = 1; i <= 4; i++) {
+                const checkbox = document.getElementById(`midCount${i}`);
+                const isChecked = checkbox.checked;
+                const count = permutations(selectedMids, i);
+                const videos = selectedHooks * count * selectedCtas;
+
+                // Update individual count display
+                document.getElementById(`count${i}Rolls`).textContent = `${videos} роликов`;
+
+                if (isChecked && videos > 0) {
+                    totalVideos += videos;
+                    breakdown.push(`${i} mid${i > 1 ? 's' : ''}: ${selectedHooks} × P(${selectedMids},${i})=${count} × ${selectedCtas} = ${videos} роликов`);
+                }
+            }
+
+            // Update total
+            document.getElementById('totalCombinations').textContent = totalVideos;
+
+            // Show/hide breakdown
+            const breakdownSection = document.getElementById('breakdownSection');
+            const breakdownList = document.getElementById('breakdownList');
+            if (breakdown.length > 0) {
+                breakdownSection.classList.remove('hidden');
+                breakdownList.innerHTML = breakdown.map(text => `<li class="flex items-center"><i class="fas fa-chevron-right text-xs mr-2 text-purple-400"></i>${text}</li>`).join('');
+            } else {
+                breakdownSection.classList.add('hidden');
+            }
+
+            // Warning for large numbers
+            const warningBlock = document.getElementById('warningBlock');
+            const warningText = document.getElementById('warningText');
+            if (totalVideos > 100) {
+                const estimatedTime = Math.ceil(totalVideos * 12 / 60);
+                const estimatedSize = (totalVideos * 27 / 1024).toFixed(1);
+                warningBlock.classList.remove('hidden');
+                warningText.textContent = `Будет создано ${totalVideos} роликов. Примерное время: ~${estimatedTime} мин. Размер: ~${estimatedSize} ГБ.`;
+            } else {
+                warningBlock.classList.add('hidden');
+            }
+
+            // Enable/disable generate button
+            const generateBtn = document.getElementById('generateBtn');
+            const selectedMidCounts = document.querySelectorAll('.mid-count-checkbox:checked').length;
+            if (selectedHooks > 0 && selectedMids > 0 && selectedCtas > 0 && selectedMidCounts > 0) {
+                generateBtn.disabled = false;
+            } else {
+                generateBtn.disabled = true;
+            }
+        }
+
+        // Load projects
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">-- Выберите проект --</option>';
+                
+                data.projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.project_id;
+                    option.textContent = project.name;
+                    select.appendChild(option);
+                });
+
+                // Auto-select from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectId = urlParams.get('project');
+                if (projectId) {
+                    select.value = projectId;
+                    loadProjectAssets(projectId);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки проектов:', error);
+            }
+        }
+
+        // Load project assets
+        async function loadProjectAssets(projectId) {
+            currentProjectId = projectId;
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}/assets`);
+                const data = await response.json();
+                allAssets = data.assets;
+
+                console.log('📦 Материалы загружены:', allAssets.length);
+
+                const hooks = allAssets.filter(a => a.asset_type === 'Hook');
+                const mids = allAssets.filter(a => a.asset_type === 'Mid');
+                const ctas = allAssets.filter(a => a.asset_type === 'CTA');
+
+                console.log(`📊 Hooks: ${hooks.length}, Mids: ${mids.length}, CTAs: ${ctas.length}`);
+
+                renderAssets('hooksList', hooks, 'hook');
+                renderAssets('midsList', mids, 'mid');
+                renderAssets('ctasList', ctas, 'cta');
+
+                document.getElementById('assetsSection').classList.remove('hidden');
+            } catch (error) {
+                console.error('Ошибка загрузки материалов:', error);
+            }
+        }
+
+        // Render assets
+        function renderAssets(containerId, assets, type) {
+            const container = document.getElementById(containerId);
+            
+            if (assets.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-full text-center">Нет материалов</p>';
+                return;
+            }
+
+            container.innerHTML = assets.map(asset => `
+                <div class="relative">
+                    <input type="checkbox" id="${asset.asset_id}" class="${type}-checkbox asset-checkbox hidden" data-asset-id="${asset.asset_id}">
+                    <label for="${asset.asset_id}" class="block glass rounded-lg p-3 cursor-pointer border-2 border-transparent hover:border-purple-500/50 transition-all">
+                        <div class="aspect-video bg-gray-800 rounded mb-2 overflow-hidden">
+                            <video src="${asset.file_path}" class="w-full h-full object-cover"></video>
+                        </div>
+                        <p class="text-xs text-gray-300 truncate text-center">${asset.filename || asset.asset_id}</p>
+                    </label>
+                </div>
+            `).join('');
+
+            // Add event listeners
+            container.querySelectorAll(`.${type}-checkbox`).forEach(checkbox => {
+                checkbox.addEventListener('change', updateCalculator);
+            });
+        }
+
+        // Project select change
+        document.getElementById('projectSelect').addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadProjectAssets(e.target.value);
+            } else {
+                document.getElementById('assetsSection').classList.add('hidden');
+            }
+        });
+
+        // Mid count checkboxes
+        document.querySelectorAll('.mid-count-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateCalculator);
+        });
+
+        // Generate combinations
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const selectedHooks = Array.from(document.querySelectorAll('.hook-checkbox:checked')).map(cb => cb.dataset.assetId);
+            const selectedMids = Array.from(document.querySelectorAll('.mid-checkbox:checked')).map(cb => cb.dataset.assetId);
+            const selectedCtas = Array.from(document.querySelectorAll('.cta-checkbox:checked')).map(cb => cb.dataset.assetId);
+            const selectedMidCounts = Array.from(document.querySelectorAll('.mid-count-checkbox:checked')).map(cb => parseInt(cb.dataset.count));
+
+            console.log('🚀 Генерация комбинаций:', {
+                hooks: selectedHooks.length,
+                mids: selectedMids.length,
+                ctas: selectedCtas.length,
+                midCounts: selectedMidCounts
+            });
+
+            // Disable button and show spinner
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('generateBtnText');
+            const spinner = document.getElementById('generateSpinner');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Создание...';
+            spinner.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/generate-combinations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        hook_ids: selectedHooks,
+                        mid_ids: selectedMids,
+                        cta_ids: selectedCtas,
+                        mid_counts: selectedMidCounts
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ Задание создано!\n\nJob ID: ${data.job_id}\nВсего комбинаций: ${data.total_combinations}\n\nWorker начал обработку. Результаты появятся в разделе Master-ролики.`);
+                    
+                    // Reset selections
+                    document.querySelectorAll('.asset-checkbox:checked').forEach(cb => cb.checked = false);
+                    document.querySelectorAll('.mid-count-checkbox:checked').forEach(cb => cb.checked = false);
+                    updateCalculator();
+                } else {
+                    alert(`❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
+                console.error('Ошибка генерации:', error);
+                alert('❌ Ошибка при создании задания');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Создать комбинации';
+                spinner.classList.add('hidden');
+            }
+        });
+
+        // Initialize
+        loadProjects();
+    </script>
+</body>
+</html>

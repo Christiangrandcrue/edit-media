@@ -1,0 +1,267 @@
+// =====================================================================
+// COMBINATION ROUTER
+// Модуль для генерации комбинаций Hook + Mid + CTA
+// =====================================================================
+
+import express from 'express';
+// DB instance imported from shared database.js
+
+const router = express.Router();
+import db from '../db/database.js';
+
+/**
+ * POST /api/projects/:id/generate-combinations
+ * Создать задание на генерацию всех комбинаций Hook+Mid+CTA
+ */
+router.post('/:id/generate-combinations', async (req, res) => {
+  const { id: projectId } = req.params;
+  const { hook_ids, mid_ids, cta_ids } = req.body;
+
+  try {
+    // Валидация входных данных
+    if (!Array.isArray(hook_ids) || hook_ids.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'hook_ids должен быть непустым массивом' 
+      });
+    }
+    if (!Array.isArray(mid_ids) || mid_ids.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'mid_ids должен быть непустым массивом' 
+      });
+    }
+    if (!Array.isArray(cta_ids) || cta_ids.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'cta_ids должен быть непустым массивом' 
+      });
+    }
+
+    // Проверяем существование проекта
+    const project = db.prepare(`
+      SELECT * FROM projects WHERE project_id = ?
+    `).get(projectId);
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Проект не найден' 
+      });
+    }
+
+    // Проверяем существование всех выбранных материалов
+    const checkAsset = db.prepare(`
+      SELECT asset_id FROM project_assets 
+      WHERE project_id = ? AND asset_id = ?
+    `);
+
+    for (const hookId of hook_ids) {
+      if (!checkAsset.get(projectId, hookId)) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Hook ${hookId} не найден в проекте` 
+        });
+      }
+    }
+    for (const midId of mid_ids) {
+      if (!checkAsset.get(projectId, midId)) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Mid ${midId} не найден в проекте` 
+        });
+      }
+    }
+    for (const ctaId of cta_ids) {
+      if (!checkAsset.get(projectId, ctaId)) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `CTA ${ctaId} не найден в проекте` 
+        });
+      }
+    }
+
+    // Рассчитываем общее количество комбинаций
+    const totalCombinations = 
+      hook_ids.length * mid_ids.length * cta_ids.length;
+
+    // Создаём задание
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    db.prepare(`
+      INSERT INTO combination_jobs (
+        job_id, project_id, 
+        hook_ids, mid_ids, cta_ids,
+        total_combinations, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'queued', datetime('now'), datetime('now'))
+    `).run(
+      jobId, 
+      projectId, 
+      JSON.stringify(hook_ids),
+      JSON.stringify(mid_ids),
+      JSON.stringify(cta_ids),
+      totalCombinations
+    );
+
+    console.log(`[API] Создано задание комбинаторики: ${jobId} (${totalCombinations} комбинаций)`);
+
+    res.json({
+      success: true,
+      message: `Задание создано: ${totalCombinations} комбинаций будут созданы`,
+      job: {
+        job_id: jobId,
+        project_id: projectId,
+        total_combinations: totalCombinations,
+        hooks: hook_ids.length,
+        mids: mid_ids.length,
+        ctas: cta_ids.length,
+        status: 'queued',
+        created_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('[API] Error creating combination job:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Ошибка создания задания комбинаторики' 
+    });
+  }
+});
+
+/**
+ * GET /api/projects/:id/combination-jobs
+ * Получить список всех заданий комбинаторики для проекта
+ */
+router.get('/:id/combination-jobs', async (req, res) => {
+  const { id: projectId } = req.params;
+
+  try {
+    const jobs = db.prepare(`
+      SELECT 
+        job_id, project_id, 
+        hook_ids, mid_ids, cta_ids,
+        total_combinations, progress, status, error,
+        created_at, updated_at, completed_at
+      FROM combination_jobs
+      WHERE project_id = ?
+      ORDER BY created_at DESC
+    `).all(projectId);
+
+    // Парсим JSON-поля
+    const jobsWithParsed = jobs.map(job => ({
+      ...job,
+      hook_ids: JSON.parse(job.hook_ids || '[]'),
+      mid_ids: JSON.parse(job.mid_ids || '[]'),
+      cta_ids: JSON.parse(job.cta_ids || '[]')
+    }));
+
+    res.json({
+      success: true,
+      jobs: jobsWithParsed
+    });
+
+  } catch (error) {
+    console.error('[API] Error fetching combination jobs:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Ошибка получения списка заданий' 
+    });
+  }
+});
+
+/**
+ * GET /api/projects/:id/combination-jobs/:job_id
+ * Получить детальную информацию о задании комбинаторики
+ */
+router.get('/:id/combination-jobs/:job_id', async (req, res) => {
+  const { id: projectId, job_id: jobId } = req.params;
+
+  try {
+    const job = db.prepare(`
+      SELECT 
+        job_id, project_id, 
+        hook_ids, mid_ids, cta_ids,
+        total_combinations, progress, status, error,
+        created_at, updated_at, completed_at
+      FROM combination_jobs
+      WHERE project_id = ? AND job_id = ?
+    `).get(projectId, jobId);
+
+    if (!job) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Задание не найдено' 
+      });
+    }
+
+    // Получаем список созданных master-видео
+    const masters = db.prepare(`
+      SELECT 
+        cm.master_id, cm.combination_index,
+        cm.hook_id, cm.mid_id, cm.cta_id,
+        mv.name, mv.duration, mv.file_size, mv.status
+      FROM combination_masters cm
+      JOIN master_videos mv ON cm.master_id = mv.master_id
+      WHERE cm.job_id = ?
+      ORDER BY cm.combination_index ASC
+    `).all(jobId);
+
+    res.json({
+      success: true,
+      job: {
+        ...job,
+        hook_ids: JSON.parse(job.hook_ids || '[]'),
+        mid_ids: JSON.parse(job.mid_ids || '[]'),
+        cta_ids: JSON.parse(job.cta_ids || '[]')
+      },
+      masters: masters
+    });
+
+  } catch (error) {
+    console.error('[API] Error fetching combination job details:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Ошибка получения информации о задании' 
+    });
+  }
+});
+
+/**
+ * GET /api/projects/:id/combination-jobs/:job_id/masters
+ * Получить все созданные master-видео для задания
+ */
+router.get('/:id/combination-jobs/:job_id/masters', async (req, res) => {
+  const { id: projectId, job_id: jobId } = req.params;
+
+  try {
+    const masters = db.prepare(`
+      SELECT 
+        cm.master_id, cm.combination_index,
+        cm.hook_id, cm.mid_id, cm.cta_id,
+        mv.name, mv.file_path, mv.duration, mv.file_size, 
+        mv.status, mv.created_at
+      FROM combination_masters cm
+      JOIN master_videos mv ON cm.master_id = mv.master_id
+      WHERE cm.job_id = ? AND cm.project_id = ?
+      ORDER BY cm.combination_index ASC
+    `).all(jobId, projectId);
+
+    res.json({
+      success: true,
+      total: masters.length,
+      masters: masters
+    });
+
+  } catch (error) {
+    console.error('[API] Error fetching combination masters:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Ошибка получения списка master-видео' 
+    });
+  }
+});
+
+console.log('✅ Combinations Router загружен');
+
+export default router;

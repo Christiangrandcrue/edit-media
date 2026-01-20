@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор синхронизации - SynthNova</title>
+    <script src="https://cdn.tailwindcss.com">        
+        // Автоматический выбор проекта из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectIdFromUrl = urlParams.get('project_id');
+        
+        if (projectIdFromUrl) {
+            // Подождать, пока проекты загрузятся
+            setTimeout(() => {
+                projectSelect.value = projectIdFromUrl;
+                projectSelect.dispatchEvent(new Event('change'));
+            }, 500);
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .timeline {
+            position: relative;
+            height: 120px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        .track {
+            position: relative;
+            height: 50px;
+            margin: 5px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+        
+        .shot-segment {
+            position: absolute;
+            top: 5px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .shot-segment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .shot-hook { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .shot-mid { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .shot-cta { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .marker::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -5px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid currentColor;
+        }
+        
+        .marker-delay { background: #ef4444; color: #ef4444; }
+        .marker-advance { background: #10b981; color: #10b981; }
+        .marker-check { background: #f59e0b; color: #f59e0b; }
+        
+        .time-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #666;
+        }
+        
+        .time-label {
+            position: absolute;
+            top: -20px;
+            left: -15px;
+            font-size: 10px;
+            color: #999;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Навигация -->
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-indigo-400">
+                        <i class="fas fa-video mr-2"></i>
+                        Synthnova EDIT
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/projects" class="text-gray-300 hover:text-white">
+                        <i class="fas fa-arrow-left mr-2"></i>К проектам
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Заголовок с выбором проекта -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-3xl font-bold">
+                    <i class="fas fa-sliders-h mr-2"></i>
+                    Редактор синхронизации мастер-ролика
+                </h2>
+                <button id="saveMasterBtn" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i class="fas fa-save mr-2"></i>
+                    Сохранить мастер-ролик
+                </button>
+            </div>
+            
+            <!-- Выбор проекта -->
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <label class="block text-sm font-semibold mb-2">Проект:</label>
+                <select id="projectSelect" class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 focus:outline-none focus:border-indigo-500">
+                    <option value="">Выберите проект...</option>
+                </select>
+            </div>
+
+            <!-- Информация о проекте -->
+            <div id="projectInfo" class="bg-gray-800 p-4 rounded-lg hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Материалы проекта:</p>
+                        <p id="projectStats" class="text-lg font-semibold"></p>
+                    </div>
+                    <button id="reloadAssetsBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Обновить
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Временная шкала -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h3 class="text-lg font-semibold mb-3">
+                <i class="fas fa-film mr-2"></i>
+                Временная шкала
+            </h3>
+            <div id="timeline" class="timeline mb-4">
+                <div id="videoTrack" class="track"></div>
+                <div id="audioTrack" class="track"></div>
+            </div>
+            <div class="flex space-x-4">
+                <button id="playBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors">
+                    <i class="fas fa-play mr-2"></i>Play
+                </button>
+                <button id="pauseBtn" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded transition-colors">
+                    <i class="fas fa-pause mr-2"></i>Pause
+                </button>
+                <button id="resetBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition-colors">
+                    <i class="fas fa-redo mr-2"></i>Reset
+                </button>
+            </div>
+        </div>
+        
+        <!-- Видеоплеер (скрыт) -->
+        <video id="videoPlayer" style="display:none;" controls></video>
+        
+        <!-- Аудио синхронизация -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h3 class="text-lg font-semibold mb-3">
+                <i class="fas fa-music mr-2"></i>
+                Синхронизация аудио
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm mb-2">Тип маркера:</label>
+                    <select id="markerType" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <option value="delay">Delay (задержка)</option>
+                        <option value="advance">Advance (ускорение)</option>
+                        <option value="check">Check (контроль)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm mb-2">Время (секунды):</label>
+                    <input type="number" id="markerTime" min="0" step="0.1" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" placeholder="0.0">
+                </div>
+                <div class="flex items-end">
+                    <button id="addMarkerBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Добавить маркер
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Список маркеров -->
+            <div id="markersList" class="space-y-2">
+                <!-- Маркеры будут добавлены динамически -->
+            </div>
+        </div>
+        
+        <!-- Метаданные -->
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">
+                <i class="fas fa-info-circle mr-2"></i>
+                Метаданные мастер-ролика
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm mb-2">Название:</label>
+                    <input type="text" id="masterName" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" placeholder="Master v1">
+                </div>
+                <div>
+                    <label class="block text-sm mb-2">Описание:</label>
+                    <input type="text" id="masterDescription" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" placeholder="Первая версия">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const timeline = document.getElementById('timeline');
+        const videoTrack = document.getElementById('videoTrack');
+        const audioTrack = document.getElementById('audioTrack');
+        const projectSelect = document.getElementById('projectSelect');
+        const projectInfo = document.getElementById('projectInfo');
+        const projectStats = document.getElementById('projectStats');
+        const saveMasterBtn = document.getElementById('saveMasterBtn');
+        const reloadAssetsBtn = document.getElementById('reloadAssetsBtn');
+        
+        let currentProject = null;
+        let markers = [];
+        let shots = [];
+        let assets = [];
+        
+        // Загрузить список проектов
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка загрузки проектов');
+                }
+                
+                projectSelect.innerHTML = '<option value="">Выберите проект...</option>';
+                data.projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.project_id;
+                    option.textContent = `${project.name} (H:${project.stats.hooks} M:${project.stats.mids} C:${project.stats.ctas})`;
+                    projectSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                alert('Ошибка загрузки проектов: ' + error.message);
+            }
+        }
+        
+        // Создание shots из материалов
+        function createShotsFromMaterials(hooks, mids, ctas) {
+            shots = [];
+            let currentTime = 0;
+            
+            const getName = (asset) => {
+                const filename = asset.original_filename || asset.asset_id;
+                return filename.replace('.mp4', '').replace(/\..+$/, '');
+            };
+            
+            const getDuration = (asset, defaultDuration) => {
+                return asset.metadata?.duration || asset.duration || defaultDuration;
+            };
+            
+            hooks.forEach(hook => {
+                shots.push({
+                    type: 'hook',
+                    id: hook.asset_id,
+                    start: currentTime,
+                    duration: getDuration(hook, 3.5),
+                    name: getName(hook),
+                    path: hook.file_path
+                });
+                currentTime += getDuration(hook, 3.5);
+            });
+            
+            mids.forEach(mid => {
+                shots.push({
+                    type: 'mid',
+                    id: mid.asset_id,
+                    start: currentTime,
+                    duration: getDuration(mid, 4.2),
+                    name: getName(mid),
+                    path: mid.file_path
+                });
+                currentTime += getDuration(mid, 4.2);
+            });
+            
+            ctas.forEach(cta => {
+                shots.push({
+                    type: 'cta',
+                    id: cta.asset_id,
+                    start: currentTime,
+                    duration: getDuration(cta, 3.8),
+                    name: getName(cta),
+                    path: cta.file_path
+                });
+                currentTime += getDuration(cta, 3.8);
+            });
+            
+            initTimeline();
+        }
+        
+        // Загрузить материалы проекта
+        async function loadProjectAssets(projectId) {
+            try {
+                const response = await fetch(`/api/projects/${projectId}/assets`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка загрузки материалов');
+                }
+                
+                assets = data.assets || [];
+                
+                // Показать статистику
+                const hooks = assets.filter(a => a.asset_type === 'hook').length;
+                const mids = assets.filter(a => a.asset_type === 'mid').length;
+                const ctas = assets.filter(a => a.asset_type === 'cta').length;
+                
+                projectStats.textContent = `Hooks: ${hooks}, Mids: ${mids}, CTAs: ${ctas} (всего: ${assets.length})`;
+                projectInfo.classList.remove('hidden');
+                
+                // Включить кнопку сохранения
+                saveMasterBtn.disabled = false;
+                
+                // Создаём shots из всех материалов
+                const hooks = assets.filter(a => a.asset_type === 'hook');
+                const mids = assets.filter(a => a.asset_type === 'mid');
+                const ctas = assets.filter(a => a.asset_type === 'cta');
+                
+                createShotsFromMaterials(hooks, mids, ctas);
+                
+            } catch (error) {
+                console.error('Error loading assets:', error);
+                alert('Ошибка загрузки материалов: ' + error.message);
+            }
+        }
+        
+        // Обработчик выбора проекта
+        projectSelect.addEventListener('change', async (e) => {
+            const projectId = e.target.value;
+            if (!projectId) {
+                projectInfo.classList.add('hidden');
+                saveMasterBtn.disabled = true;
+                return;
+            }
+            
+            currentProject = projectId;
+            await loadProjectAssets(projectId);
+        });
+        
+        // Обработчик обновления материалов
+        reloadAssetsBtn.addEventListener('click', async () => {
+            if (currentProject) {
+                await loadProjectAssets(currentProject);
+            }
+        });
+        
+        // Initialize timeline
+        function initTimeline() {
+            // Очистить
+            videoTrack.innerHTML = '';
+            audioTrack.innerHTML = '';
+            timeline.querySelectorAll('.time-marker').forEach(m => m.remove());
+            
+            if (shots.length === 0) {
+                return;
+            }
+            
+            const totalDuration = shots.reduce((sum, shot) => sum + shot.duration, 0);
+            const pixelsPerSecond = 50;
+            const timelineWidth = Math.ceil(totalDuration) * pixelsPerSecond;
+            
+            timeline.style.width = `${timelineWidth}px`;
+            
+            // Add time markers
+            for (let i = 0; i <= Math.ceil(totalDuration); i++) {
+                const marker = document.createElement('div');
+                marker.className = 'time-marker';
+                marker.style.left = `${i * pixelsPerSecond}px`;
+                
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.textContent = `${i}s`;
+                marker.appendChild(label);
+                
+                timeline.appendChild(marker);
+            }
+            
+            // Add shots to video track
+            shots.forEach(shot => {
+                const segment = document.createElement('div');
+                segment.className = `shot-segment shot-${shot.type}`;
+                segment.style.left = `${shot.start * pixelsPerSecond}px`;
+                segment.style.width = `${shot.duration * pixelsPerSecond}px`;
+                segment.textContent = shot.name;
+                segment.title = `${shot.name} (${shot.duration.toFixed(1)}s)`;
+                
+                videoTrack.appendChild(segment);
+                
+                // Clone to audio track
+                const audioSegment = segment.cloneNode(true);
+                audioTrack.appendChild(audioSegment);
+            });
+            
+            // Redraw markers
+            renderMarkers();
+        }
+        
+        // Add marker
+        document.getElementById('addMarkerBtn').addEventListener('click', () => {
+            const type = document.getElementById('markerType').value;
+            const time = parseFloat(document.getElementById('markerTime').value);
+            
+            if (isNaN(time) || time < 0) {
+                alert('Введите корректное время');
+                return;
+            }
+            
+            markers.push({ type, time, id: Date.now() });
+            renderMarkers();
+            updateMarkersList();
+        });
+        
+        // Render markers on timeline
+        function renderMarkers() {
+            // Remove old markers
+            timeline.querySelectorAll('.marker').forEach(m => m.remove());
+            
+            const pixelsPerSecond = 50;
+            markers.forEach(marker => {
+                const el = document.createElement('div');
+                el.className = `marker marker-${marker.type}`;
+                el.style.left = `${marker.time * pixelsPerSecond}px`;
+                el.title = `${marker.type} at ${marker.time.toFixed(1)}s`;
+                timeline.appendChild(el);
+            });
+        }
+        
+        // Update markers list
+        function updateMarkersList() {
+            const list = document.getElementById('markersList');
+            list.innerHTML = '';
+            
+            markers.forEach(marker => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-gray-700 p-3 rounded';
+                item.innerHTML = `
+                    <div>
+                        <span class="font-semibold">${marker.type}</span>
+                        <span class="text-gray-400 ml-2">${marker.time.toFixed(1)}s</span>
+                    </div>
+                    <button class="text-red-500 hover:text-red-400" onclick="removeMarker(${marker.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        // Remove marker
+        window.removeMarker = function(id) {
+            markers = markers.filter(m => m.id !== id);
+            renderMarkers();
+            updateMarkersList();
+        };
+        
+        // Save master video
+        saveMasterBtn.addEventListener('click', async () => {
+            if (!currentProject) {
+                alert('Выберите проект');
+                return;
+            }
+            
+            const name = document.getElementById('masterName').value || 'Master v1';
+            const description = document.getElementById('masterDescription').value || '';
+            
+            if (shots.length === 0) {
+                alert('Нет материалов для создания мастер-ролика');
+                return;
+            }
+            
+            try {
+                saveMasterBtn.disabled = true;
+                saveMasterBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Сохранение...';
+                
+                const payload = {
+                    name,
+                    description,
+                    shots_used: shots.map(s => ({
+                        asset_id: s.id,
+                        type: s.type,
+                        start_time: s.start,
+                        duration: s.duration,
+                        path: s.path
+                    })),
+                    sync_markers: markers,
+                    duration: shots.reduce((sum, s) => sum + s.duration, 0),
+                    metadata: {
+                        created_by: 'sync-editor',
+                        shots_count: shots.length,
+                        markers_count: markers.length
+                    }
+                };
+                
+                const response = await fetch(`/api/projects/${currentProject}/master-videos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка сохранения');
+                }
+                
+                alert('Мастер-ролик успешно сохранён!');
+                
+                // Перенаправить на дашборд проекта
+                window.location.href = `/projects/${currentProject}`;
+                
+            } catch (error) {
+                console.error('Error saving master video:', error);
+                alert('Ошибка сохранения: ' + error.message);
+            } finally {
+                saveMasterBtn.disabled = false;
+                saveMasterBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Сохранить мастер-ролик';
+            }
+        });
+        
+        // Controls
+        document.getElementById('playBtn').addEventListener('click', () => {
+            // Placeholder: implement play logic
+            alert('Play: not implemented yet');
+        });
+        
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            alert('Pause: not implemented yet');
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (confirm('Сбросить все маркеры?')) {
+                markers = [];
+                renderMarkers();
+                updateMarkersList();
+            }
+        });
+        
+        // Load projects on start
+        loadProjects();
+            
+        // Автоматический выбор проекта из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectIdFromUrl = urlParams.get('project_id');
+        
+        if (projectIdFromUrl) {
+            // Подождать, пока проекты загрузятся
+            setTimeout(() => {
+                projectSelect.value = projectIdFromUrl;
+                projectSelect.dispatchEvent(new Event('change'));
+            }, 500);
+        }
+    </script>
+</body>
+</html>
+
+        // Автоматический выбор проекта из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectIdFromUrl = urlParams.get('project_id');
+        
+        if (projectIdFromUrl) {
+            // Подождать, пока проекты загрузятся
+            setTimeout(() => {
+                projectSelect.value = projectIdFromUrl;
+                projectSelect.dispatchEvent(new Event('change'));
+            }, 500);
+        }

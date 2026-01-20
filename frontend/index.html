@@ -1,0 +1,724 @@
+
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Видео-Уникализатор | Synthnova</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <style>
+          body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+          }
+          .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .stat-card { transition: all 0.3s ease; }
+          .stat-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+          
+          /* Ensure modal is always on top - CRITICAL FIX */
+          #uploadModal { 
+            z-index: 2147483647 !important; /* Max 32-bit integer */
+            position: fixed !important;
+            isolation: isolate !important;
+          }
+          #uploadModal > div { 
+            z-index: 2147483647 !important; 
+            position: relative !important;
+          }
+          #uploadModal * { 
+            position: relative !important;
+            z-index: 1 !important;
+          }
+          
+          /* Isolate main container to prevent stacking context issues */
+          .max-w-6xl { isolation: isolate; }
+        </style>
+    </head>
+    <body class="p-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="glass rounded-2xl p-8 mb-8 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 class="text-4xl font-bold mb-2">
+                            <i class="fas fa-film mr-3"></i>
+                            Видео-Уникализатор
+                        </h1>
+                        <p class="text-xl opacity-90">Массовая генерация уникальных роликов для TikTok</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm opacity-75">Сервер</div>
+                        <div class="text-2xl font-mono">185.178.46.187</div>
+                        <div id="serverStatus" class="text-sm text-yellow-300">
+                            <i class="fas fa-circle text-xs"></i> Проверка...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="glass rounded-xl p-6 text-white stat-card">
+                    <div class="text-4xl mb-2"><i class="fas fa-server"></i></div>
+                    <div class="text-sm opacity-75">Конфигурация</div>
+                    <div class="text-2xl font-bold">4 CPU / 8GB</div>
+                </div>
+                
+                <div class="glass rounded-xl p-6 text-white stat-card">
+                    <div class="text-4xl mb-2"><i class="fas fa-palette"></i></div>
+                    <div class="text-sm opacity-75">FFmpeg фильтров</div>
+                    <div class="text-2xl font-bold">60+</div>
+                </div>
+                
+                <div class="glass rounded-xl p-6 text-white stat-card">
+                    <div class="text-4xl mb-2"><i class="fas fa-infinity"></i></div>
+                    <div class="text-sm opacity-75">Комбинаций</div>
+                    <div class="text-2xl font-bold">35+ трлн</div>
+                </div>
+                
+                <div class="glass rounded-xl p-6 text-white stat-card">
+                    <div class="text-4xl mb-2"><i class="fas fa-clock"></i></div>
+                    <div class="text-sm opacity-75">Скорость</div>
+                    <div class="text-2xl font-bold">~30 сек/видео</div>
+                </div>
+            </div>
+
+            <!-- Generator Form -->
+            <div class="glass rounded-2xl p-8 mb-8 text-white">
+                <h2 class="text-2xl font-bold mb-6">
+                    <i class="fas fa-rocket mr-2"></i>
+                    Запустить генерацию
+                </h2>
+                
+                <form id="generateForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Количество роликов</label>
+                        <input 
+                            type="number" 
+                            id="numVideos"
+                            min="1" 
+                            max="1000" 
+                            value="10"
+                            class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50"
+                            placeholder="От 1 до 1000"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Профиль уникализации</label>
+                        <select 
+                            id="profile"
+                            class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                        >
+                            <option value="conservative" class="bg-gray-800">Conservative (только color)</option>
+                            <option value="moderate" selected class="bg-gray-800">Moderate (color + texture + temporal)</option>
+                            <option value="aggressive" class="bg-gray-800">Aggressive (все уровни + geo)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle mr-3 mt-1"></i>
+                            <div class="text-sm opacity-90">
+                                <strong>Расчётное время:</strong> <span id="estimatedTime">5 минут</span><br>
+                                <strong>Стоимость:</strong> ~<span id="estimatedCost">0.25</span> ₽
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        type="submit"
+                        id="submitBtn"
+                        class="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-4 px-6 rounded-lg hover:from-green-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
+                    >
+                        <i class="fas fa-play mr-2"></i>
+                        Запустить генерацию
+                    </button>
+                </form>
+                
+                <div id="result" class="mt-6 hidden"></div>
+                
+                <!-- Live Progress Panel -->
+                <div id="liveProgressPanel" class="mt-6 hidden">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-broadcast-tower mr-2 text-green-400"></i>
+                        Live Progress
+                    </h3>
+                    <div id="liveProgress" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="glass rounded-2xl p-8 mb-8 text-white">
+                <h2 class="text-2xl font-bold mb-6">
+                    <i class="fas fa-upload mr-2"></i>
+                    Загрузка исходных видео
+                </h2>
+                
+                <p class="text-sm opacity-75 mb-6">
+                    Загрузите исходные видео-фрагменты (шоты) для генерации уникальных роликов.
+                    Система объединяет Hook + Mid + CTA в финальное видео.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white/10 rounded-xl p-4 border-2 border-dashed border-white/30 hover:border-white/50 transition cursor-pointer" onclick="openUpload('hook')">
+                        <div class="text-3xl mb-2">🎣</div>
+                        <div class="font-bold">Hook</div>
+                        <div class="text-sm opacity-75">Начало ролика (3-5 сек)</div>
+                        <div class="text-xs opacity-50 mt-2">Привлекает внимание</div>
+                    </div>
+                    
+                    <div class="bg-white/10 rounded-xl p-4 border-2 border-dashed border-white/30 hover:border-white/50 transition cursor-pointer" onclick="openUpload('mid')">
+                        <div class="text-3xl mb-2">🎬</div>
+                        <div class="font-bold">Mid</div>
+                        <div class="text-sm opacity-75">Основной контент (5-15 сек)</div>
+                        <div class="text-xs opacity-50 mt-2">Главная часть</div>
+                    </div>
+                    
+                    <div class="bg-white/10 rounded-xl p-4 border-2 border-dashed border-white/30 hover:border-white/50 transition cursor-pointer" onclick="openUpload('cta')">
+                        <div class="text-3xl mb-2">📢</div>
+                        <div class="font-bold">CTA</div>
+                        <div class="text-sm opacity-75">Call-to-action (3-5 сек)</div>
+                        <div class="text-xs opacity-50 mt-2">Финал и призыв</div>
+                    </div>
+                </div>
+                
+                
+                <!-- Shots Stats -->
+                <div id="shotsStats" class="grid grid-cols-3 gap-4 mt-6">
+                    <div class="bg-white/5 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold" id="hookCount">-</div>
+                        <div class="text-xs opacity-75">Hook</div>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold" id="midCount">-</div>
+                        <div class="text-xs opacity-75">Mid</div>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold" id="ctaCount">-</div>
+                        <div class="text-xs opacity-75">CTA</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <a href="/admin" class="text-sm opacity-75 hover:opacity-100 underline">
+                        <i class="fas fa-cog mr-1"></i> Управление шотами в Admin Panel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass rounded-xl p-6 text-white">
+                    <div class="text-3xl mb-3"><i class="fas fa-shield-alt"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Anti-Fraud</h3>
+                    <p class="opacity-90">4 уровня уникализации обманывают перцептивный хэш TikTok</p>
+                </div>
+                
+                <div class="glass rounded-xl p-6 text-white">
+                    <div class="text-3xl mb-3"><i class="fas fa-tachometer-alt"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Быстро</h3>
+                    <p class="opacity-90">15000 роликов за 60 часов на текущем сервере</p>
+                </div>
+                
+                <div class="glass rounded-xl p-6 text-white">
+                    <div class="text-3xl mb-3"><i class="fas fa-chart-line"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Экономично</h3>
+                    <p class="opacity-90">1900 ₽/мес vs $1500-7500 за 15k у конкурентов</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-8 text-white opacity-75">
+                <p>© 2026 Synthnova | Timeweb Cloud VPS | FFmpeg 6.1.1 + Node.js 18.19.1</p>
+                <a href="/admin" class="text-xs opacity-50 hover:opacity-100 mt-2 inline-block">
+                    <i class="fas fa-cog mr-1"></i> Admin Panel
+                </a>
+            </div>
+        </div>
+                <!-- Upload Modal -->
+                <div id="uploadModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+                    <div class="bg-gray-900 text-white rounded-2xl p-8 max-w-lg w-full shadow-2xl relative z-[10000]">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Загрузить <span id="uploadTypeLabel">Mid</span></h3>
+                            <button onclick="closeUpload()" class="text-2xl opacity-50 hover:opacity-100">×</button>
+                        </div>
+                        
+                        <form id="uploadForm" class="space-y-4">
+                            <input type="hidden" id="uploadType" value="mid">
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Теги (опционально)</label>
+                                <input 
+                                    type="text" 
+                                    id="uploadTags"
+                                    placeholder="product, demo, promo"
+                                    class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                <p class="text-xs opacity-50 mt-1">Через запятую</p>
+                            </div>
+                            
+                            <div 
+                                id="dropZone"
+                                class="border-2 border-dashed border-white/30 rounded-xl p-8 text-center hover:border-white/50 hover:bg-white/5 transition cursor-pointer"
+                            >
+                                <div class="text-4xl mb-3">📁</div>
+                                <div class="font-bold mb-1">Перетащите файлы сюда</div>
+                                <div class="text-sm opacity-75">или кликните для выбора</div>
+                                <div class="text-xs opacity-50 mt-2">MP4, MOV, AVI • до 500MB • до 50 файлов</div>
+                                <input type="file" id="fileInput" multiple accept="video/*" class="hidden">
+                            </div>
+                            
+                            <div id="fileList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                            
+                            <div id="uploadProgress" class="hidden">
+                                <div class="flex justify-between mb-1">
+                                    <span>Загрузка...</span>
+                                    <span id="uploadPercent">0%</span>
+                                </div>
+                                <div class="bg-white/10 rounded-full h-2">
+                                    <div id="uploadBar" class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all" style="width:0%"></div>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                type="submit"
+                                id="uploadBtn"
+                                disabled
+                                class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <i class="fas fa-cloud-upload-alt mr-2"></i>
+                                Загрузить
+                            </button>
+                        </form>
+                        
+                        <div id="uploadResult" class="mt-4 hidden"></div>
+                    </div>
+                </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script>
+          // Check server status
+          async function checkStatus() {
+            const statusEl = document.getElementById('serverStatus');
+            try {
+              const response = await axios.get('/api/status', { timeout: 5000 });
+              const data = response.data;
+              
+              if (data.status === 'online') {
+                statusEl.innerHTML = '<i class="fas fa-circle text-xs text-green-400"></i> Online';
+                statusEl.className = 'text-sm text-green-300';
+              } else {
+                statusEl.innerHTML = '<i class="fas fa-circle text-xs text-red-400"></i> Offline';
+                statusEl.className = 'text-sm text-red-300';
+              }
+            } catch (error) {
+              statusEl.innerHTML = '<i class="fas fa-circle text-xs text-red-400"></i> Offline';
+              statusEl.className = 'text-sm text-red-300';
+            }
+          }
+          
+          checkStatus();
+          setInterval(checkStatus, 30000);
+
+          // Update estimated time
+          const numVideosInput = document.getElementById('numVideos');
+          const estimatedTimeEl = document.getElementById('estimatedTime');
+          const estimatedCostEl = document.getElementById('estimatedCost');
+          
+          function updateEstimates() {
+            const numVideos = parseInt(numVideosInput.value) || 10;
+            const minutes = Math.ceil(numVideos * 30 / 60);
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            
+            let timeStr = '';
+            if (hours > 0) timeStr += hours + ' ч ';
+            if (mins > 0 || hours === 0) timeStr += mins + ' мин';
+            
+            estimatedTimeEl.textContent = timeStr;
+            estimatedCostEl.textContent = (numVideos * 0.025).toFixed(2);
+          }
+          
+          numVideosInput.addEventListener('input', updateEstimates);
+          updateEstimates();
+          
+          // Handle form submission
+          document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const numVideos = parseInt(document.getElementById('numVideos').value);
+            const profile = document.getElementById('profile').value;
+            const resultEl = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Отправка...';
+            
+            resultEl.className = 'mt-6 bg-blue-500/20 border border-blue-400/50 rounded-lg p-4';
+            resultEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Создание задачи...';
+            resultEl.classList.remove('hidden');
+            
+            try {
+              const response = await axios.post('/api/jobs', {
+                num_videos: numVideos,
+                profile: profile
+              });
+              
+              const data = response.data;
+              
+              resultEl.className = 'mt-6 bg-green-500/20 border border-green-400/50 rounded-lg p-4';
+              resultEl.innerHTML = `
+                <div class="flex items-start">
+                  <i class="fas fa-check-circle text-2xl mr-3 text-green-400"></i>
+                  <div>
+                    <div class="font-bold text-lg mb-2">Задача создана!</div>
+                    <div class="space-y-1 text-sm opacity-90">
+                      <div><strong>Job ID:</strong> ${data.job_id}</div>
+                      <div><strong>Статус:</strong> ${data.status}</div>
+                      <div><strong>Роликов:</strong> ${data.num_videos}</div>
+                      <div><strong>Профиль:</strong> ${data.profile}</div>
+                      <div><strong>Примерное время:</strong> ${data.estimated_time} мин</div>
+                      ${data.queue_position ? '<div><strong>Позиция в очереди:</strong> #' + data.queue_position + '</div>' : ''}
+                    </div>
+                    <div class="mt-4">
+                      <a href="/api/jobs/${data.job_id}" target="_blank" 
+                         class="text-sm underline hover:no-underline">
+                        Отслеживать статус →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              `;
+              
+              // Subscribe to WebSocket updates for this job
+              subscribeToJob(data.job_id);
+            } catch (error) {
+              const errData = error.response?.data;
+              
+              resultEl.className = 'mt-6 bg-red-500/20 border border-red-400/50 rounded-lg p-4';
+              
+              if (errData?.fallback) {
+                resultEl.className = 'mt-6 bg-yellow-500/20 border border-yellow-400/50 rounded-lg p-4';
+                resultEl.innerHTML = `
+                  <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-2xl mr-3 text-yellow-400"></i>
+                    <div>
+                      <div class="font-bold text-lg mb-2">Сервер временно недоступен</div>
+                      <div class="text-sm opacity-90">${errData.message}</div>
+                      <div class="text-xs mt-2 opacity-75">Job ID: ${errData.job_id}</div>
+                    </div>
+                  </div>
+                `;
+              } else {
+                resultEl.innerHTML = `
+                  <div class="flex items-start">
+                    <i class="fas fa-exclamation-circle text-2xl mr-3 text-red-400"></i>
+                    <div>
+                      <div class="font-bold text-lg mb-2">Ошибка</div>
+                      <div class="text-sm opacity-90">${errData?.error || error.message}</div>
+                    </div>
+                  </div>
+                `;
+              }
+            } finally {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Запустить генерацию';
+            }
+          });
+          
+          // ============================================
+          // HTTP POLLING FOR LIVE PROGRESS (HTTPS-safe)
+          // ============================================
+          
+          let currentJobId = null;
+          let pollingInterval = null;
+          let lastJobStatus = null;
+          
+          async function pollJobStatus() {
+            if (!currentJobId) return;
+            
+            try {
+              const response = await axios.get(`/api/jobs/${currentJobId}`);
+              const data = response.data;
+              
+              // Check if status changed
+              if (JSON.stringify(data) !== lastJobStatus) {
+                lastJobStatus = JSON.stringify(data);
+                handleJobUpdate(data);
+              }
+            } catch (error) {
+              console.error('[Polling] Error:', error);
+            }
+          }
+          
+          function startPolling(jobId) {
+            currentJobId = jobId;
+            lastJobStatus = null;
+            
+            // Poll every 2 seconds
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(pollJobStatus, 2000);
+            
+            // Initial poll
+            pollJobStatus();
+          }
+          
+          function stopPolling() {
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+            }
+            currentJobId = null;
+          }
+          
+          function handleJobUpdate(data) {
+            const panel = document.getElementById('liveProgressPanel');
+            const progress = document.getElementById('liveProgress');
+            
+            // Show panel for active jobs
+            if (data.status !== 'pending') {
+              panel.classList.remove('hidden');
+            }
+            
+            // Update based on status
+            if (data.status === 'processing') {
+              const percent = data.progress?.percent || 0;
+              const completed = data.progress?.videos_completed || 0;
+              const total = data.num_videos || 0;
+              
+              progress.innerHTML = `
+                <div class="bg-blue-500/20 rounded-lg p-4">
+                  <div class="flex justify-between mb-2">
+                    <span><i class="fas fa-cog fa-spin mr-2"></i>Генерация...</span>
+                    <span class="font-bold">${percent}%</span>
+                  </div>
+                  <div class="bg-white/10 rounded-full h-3 mb-2">
+                    <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-300" 
+                         style="width:${percent}%"></div>
+                  </div>
+                  <div class="text-sm opacity-75">
+                    Видео: ${completed} / ${total}
+                  </div>
+                </div>
+              `;
+            } else if (data.status === 'completed') {
+              stopPolling();
+              progress.innerHTML = `
+                <div class="bg-green-500/20 rounded-lg p-4">
+                  <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-400 mr-3 text-2xl"></i>
+                    <div class="flex-1">
+                      <div class="font-bold text-green-400">Генерация завершена!</div>
+                      <div class="text-sm opacity-75">${data.successful || data.num_videos} видео готовы</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            } else if (data.status === 'failed') {
+              stopPolling();
+              progress.innerHTML = `
+                <div class="bg-red-500/20 rounded-lg p-4">
+                  <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-400 mr-3 text-2xl"></i>
+                    <div>
+                      <div class="font-bold text-red-400">Ошибка генерации</div>
+                      <div class="text-sm opacity-75">${data.error || 'Неизвестная ошибка'}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+          }
+          
+          // Subscribe to job after creation
+          function subscribeToJob(jobId) {
+            startPolling(jobId);
+          }
+          
+          // ============================================
+          // UPLOAD FUNCTIONALITY
+          // ============================================
+          
+          let selectedFiles = [];
+          
+          function openUpload(type) {
+            document.getElementById('uploadType').value = type;
+            document.getElementById('uploadTypeLabel').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            document.getElementById('uploadModal').classList.remove('hidden');
+            selectedFiles = [];
+            updateFileList();
+          }
+          
+          function closeUpload() {
+            document.getElementById('uploadModal').classList.add('hidden');
+            document.getElementById('uploadResult').classList.add('hidden');
+            document.getElementById('uploadProgress').classList.add('hidden');
+          }
+          
+          // Close modal on escape or outside click
+          document.getElementById('uploadModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('uploadModal')) closeUpload();
+          });
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeUpload();
+          });
+          
+          // Drag and drop
+          const dropZone = document.getElementById('dropZone');
+          const fileInput = document.getElementById('fileInput');
+          
+          dropZone.addEventListener('click', () => fileInput.click());
+          
+          dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
+          });
+          
+          dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+          });
+          
+          dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+            handleFiles(e.dataTransfer.files);
+          });
+          
+          fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+          });
+          
+          function handleFiles(files) {
+            for (const file of files) {
+              if (file.type.startsWith('video/') && selectedFiles.length < 50) {
+                selectedFiles.push(file);
+              }
+            }
+            updateFileList();
+          }
+          
+          function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (selectedFiles.length === 0) {
+              fileList.innerHTML = '';
+              uploadBtn.disabled = true;
+              return;
+            }
+            
+            fileList.innerHTML = selectedFiles.map((file, i) => 
+              '<div class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-sm text-white">' +
+                '<span class="truncate flex-1 text-white">' + file.name + '</span>' +
+                '<span class="opacity-50 mx-2 text-white">' + (file.size / 1024 / 1024).toFixed(1) + ' MB</span>' +
+                '<button type="button" onclick="removeFile(' + i + ')" class="text-red-400 hover:text-red-300">' +
+                  '<i class="fas fa-times"></i>' +
+                '</button>' +
+              '</div>'
+            ).join('');
+            
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-2"></i> Загрузить ' + selectedFiles.length + ' файл(ов)';
+          }
+          
+          function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+          }
+          
+          // Upload form submit
+          document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (selectedFiles.length === 0) return;
+            
+            const type = document.getElementById('uploadType').value;
+            const tags = document.getElementById('uploadTags').value;
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadBar = document.getElementById('uploadBar');
+            const uploadPercent = document.getElementById('uploadPercent');
+            const uploadResult = document.getElementById('uploadResult');
+            
+            uploadBtn.disabled = true;
+            uploadProgress.classList.remove('hidden');
+            uploadResult.classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('type', type);
+            if (tags) formData.append('tags', tags);
+            selectedFiles.forEach(file => formData.append('files', file));
+            
+            try {
+              const response = await axios.post('/api/shots/upload', formData, {
+                onUploadProgress: (progressEvent) => {
+                  const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  uploadBar.style.width = percent + '%';
+                  uploadPercent.textContent = percent + '%';
+                }
+              });
+              
+              const data = response.data;
+              
+              uploadResult.classList.remove('hidden');
+              uploadResult.className = 'mt-4 bg-green-500/20 border border-green-400/50 rounded-lg p-4';
+              uploadResult.innerHTML = 
+                '<div class="flex items-center">' +
+                  '<i class="fas fa-check-circle text-green-400 text-xl mr-3"></i>' +
+                  '<div>' +
+                    '<div class="font-bold">Загружено успешно!</div>' +
+                    '<div class="text-sm opacity-75">' + (data.uploaded?.length || data.shots?.length || selectedFiles.length) + ' файлов</div>' +
+                  '</div>' +
+                '</div>';
+              
+              selectedFiles = [];
+              updateFileList();
+              loadShotsStats();
+              
+              // Auto-close after success
+              setTimeout(closeUpload, 2000);
+              
+            } catch (error) {
+              uploadResult.classList.remove('hidden');
+              uploadResult.className = 'mt-4 bg-red-500/20 border border-red-400/50 rounded-lg p-4';
+              uploadResult.innerHTML = 
+                '<div class="flex items-center">' +
+                  '<i class="fas fa-exclamation-circle text-red-400 text-xl mr-3"></i>' +
+                  '<div>' +
+                    '<div class="font-bold">Ошибка загрузки</div>' +
+                    '<div class="text-sm opacity-75">' + (error.response?.data?.error || error.message) + '</div>' +
+                  '</div>' +
+                '</div>';
+            } finally {
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-2"></i> Загрузить';
+              uploadProgress.classList.add('hidden');
+            }
+          });
+          
+          // Load shots stats
+          async function loadShotsStats() {
+            try {
+              const response = await axios.get('/api/shots/stats');
+              const data = response.data;
+              const stats = data.stats || data; // Handle both formats
+              
+              document.getElementById('hookCount').textContent = stats.hook || 0;
+              document.getElementById('midCount').textContent = stats.mid || 0;
+              document.getElementById('ctaCount').textContent = stats.cta || 0;
+            } catch (error) {
+              console.log('Stats unavailable');
+            }
+          }
+          
+          loadShotsStats();
+        </script>
+    </body>
+    </html>
+  

@@ -1,0 +1,307 @@
+// projects-router.js - API роутеры для работы с проектами
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import projectService from '../services/project-service.js';
+import assetService from '../services/asset-service.js';
+import masterVideoService from '../services/master-video-service.js';
+
+const router = express.Router();
+
+// Multer для загрузки файлов
+const upload = multer({ 
+  dest: '/tmp/uploads/',
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB
+});
+
+// ===== ПРОЕКТЫ =====
+
+// GET /api/projects - Получить все проекты
+router.get('/', async (req, res) => {
+  try {
+    const projects = projectService.getAllProjects();
+    res.json({ success: true, projects });
+  } catch (error) {
+    console.error('[API] Error getting projects:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/projects/:project_id - Получить проект
+router.get('/:project_id', async (req, res) => {
+  try {
+    const project = projectService.getProject(req.params.project_id);
+    
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found' });
+    }
+    
+    res.json({ success: true, project });
+  } catch (error) {
+    console.error('[API] Error getting project:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/projects - Создать проект
+router.post('/', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Name is required' });
+    }
+    
+    const project = await projectService.createProject({ name, description });
+    
+    res.json({ success: true, project });
+  } catch (error) {
+    console.error('[API] Error creating project:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/projects/:project_id - Обновить проект
+router.patch('/:project_id', async (req, res) => {
+  try {
+    const project = projectService.updateProject(req.params.project_id, req.body);
+    
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found' });
+    }
+    
+    res.json({ success: true, project });
+  } catch (error) {
+    console.error('[API] Error updating project:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/projects/:project_id - Удалить проект
+router.delete('/:project_id', async (req, res) => {
+  try {
+    const result = projectService.deleteProject(req.params.project_id);
+    res.json(result);
+  } catch (error) {
+    console.error('[API] Error deleting project:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== МАТЕРИАЛЫ =====
+
+// GET /api/projects/:project_id/assets - Получить материалы проекта
+router.get('/:project_id/assets', async (req, res) => {
+  try {
+    const { asset_type } = req.query;
+    const assets = assetService.getProjectAssets(req.params.project_id, asset_type);
+    
+    res.json({ success: true, assets });
+  } catch (error) {
+    console.error('[API] Error getting assets:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/projects/:project_id/assets - Добавить материал
+router.post('/:project_id/assets', upload.single('file'), async (req, res) => {
+  try {
+    const { asset_type, metadata } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'File is required' });
+    }
+    
+    if (!asset_type) {
+      return res.status(400).json({ success: false, error: 'Asset type is required' });
+    }
+    
+    const asset = await assetService.addAsset({
+      project_id: req.params.project_id,
+      asset_type,
+      file_path: req.file.path,
+      original_filename: req.file.originalname,
+      metadata: metadata ? JSON.parse(metadata) : {}
+    });
+    
+    // Удалить временный файл
+    fs.unlinkSync(req.file.path);
+    
+    res.json({ success: true, asset });
+  } catch (error) {
+    console.error('[API] Error adding asset:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/projects/:project_id/assets/:asset_id - Удалить материал
+router.delete('/:project_id/assets/:asset_id', async (req, res) => {
+  try {
+    const result = assetService.deleteAsset(req.params.asset_id);
+    res.json(result);
+  } catch (error) {
+    console.error('[API] Error deleting asset:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== МАСТЕР-РОЛИКИ =====
+
+// GET /api/projects/:project_id/master-videos - Получить мастер-ролики
+router.get('/:project_id/master-videos', async (req, res) => {
+  try {
+    const masterVideos = masterVideoService.getProjectMasterVideos(req.params.project_id);
+    
+    res.json({ success: true, master_videos: masterVideos });
+  } catch (error) {
+    console.error('[API] Error getting master videos:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/projects/:project_id/master-videos/:master_id - Получить мастер-ролик
+router.get('/:project_id/master-videos/:master_id', async (req, res) => {
+  try {
+    const master = masterVideoService.getMasterVideo(req.params.master_id);
+    
+    if (!master) {
+      return res.status(404).json({ success: false, error: 'Master video not found' });
+    }
+    
+    res.json({ success: true, master_video: master });
+  } catch (error) {
+    console.error('[API] Error getting master video:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/projects/:project_id/master-videos - Создать мастер-ролик
+router.post('/:project_id/master-videos', async (req, res) => {
+  try {
+    const { name, shots_config, metadata } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Name is required' });
+    }
+    
+    if (!shots_config) {
+      return res.status(400).json({ success: false, error: 'Shots config is required' });
+    }
+    
+    const master = await masterVideoService.createMasterVideo({
+      project_id: req.params.project_id,
+      name,
+      shots_config,
+      metadata: metadata || {}
+    });
+    
+    res.json({ success: true, master_video: master });
+  } catch (error) {
+    console.error('[API] Error creating master video:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/projects/:project_id/master-videos/:master_id/status - Обновить статус
+router.patch('/:project_id/master-videos/:master_id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ success: false, error: 'Status is required' });
+    }
+    
+    const master = masterVideoService.updateMasterVideoStatus(req.params.master_id, status);
+    
+    res.json({ success: true, master_video: master });
+  } catch (error) {
+    console.error('[API] Error updating status:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/projects/:project_id/master-videos/:master_id/markers - Сохранить маркеры
+router.post('/:project_id/master-videos/:master_id/markers', async (req, res) => {
+  try {
+    const { markers } = req.body;
+    
+    if (!Array.isArray(markers)) {
+      return res.status(400).json({ success: false, error: 'Markers must be an array' });
+    }
+    
+    const master = masterVideoService.saveSyncMarkers(req.params.master_id, markers);
+    
+    res.json({ success: true, master_video: master });
+  } catch (error) {
+    console.error('[API] Error saving markers:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/projects/:project_id/master-videos/:master_id/approve - Одобрить мастер-ролик
+router.post('/:project_id/master-videos/:master_id/approve', async (req, res) => {
+  try {
+    const master = masterVideoService.approveMasterVideo(req.params.master_id);
+    
+    res.json({ success: true, master_video: master });
+  } catch (error) {
+    console.error('[API] Error approving master video:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/projects/:project_id/master-videos/:master_id - Удалить мастер-ролик
+router.delete('/:project_id/master-videos/:master_id', async (req, res) => {
+  try {
+    const result = masterVideoService.deleteMasterVideo(req.params.master_id);
+    res.json(result);
+  } catch (error) {
+    console.error('[API] Error deleting master video:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+// POST /api/projects/:id/scale - Запуск массовой генерации (уникализация)
+router.post('/:id/scale', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const { master_video_id, count } = req.body;
+    
+    if (!master_video_id || !count) {
+      return res.status(400).json({ success: false, error: 'master_video_id and count are required' });
+    }
+    
+    if (count < 1 || count > 100) {
+      return res.status(400).json({ success: false, error: 'count must be between 1 and 100' });
+    }
+    
+    // Получить мастер-ролик
+    const master = masterVideoService.getById(master_video_id);
+    if (!master || master.project_id !== projectId) {
+      return res.status(404).json({ success: false, error: 'Master video not found' });
+    }
+    
+    // TODO: Запустить генерацию через generator.js
+    // Пока возвращаем заглушку
+    res.json({
+      success: true,
+      message: `Запущена генерация ${count} уникальных версий`,
+      job: {
+        job_id: `job_${Date.now()}`,
+        project_id: projectId,
+        master_video_id,
+        count,
+        status: 'queued',
+        created_at: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('[API] Error starting scale job:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+export default router;

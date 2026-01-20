@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комбинаторика - Synthnova EDIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-random text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">Комбинаторика</h1>
+                        <p class="text-purple-100 text-sm">Hook × Mid × CTA = Мастер-ролики</p>
+                    </div>
+                </div>
+                <a href="/dashboard" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Назад к проектам
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        
+        <!-- Project Selection -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fas fa-folder-open mr-2 text-purple-600"></i>
+                Шаг 1: Выберите проект
+            </h2>
+            <select id="projectSelect" onchange="loadProjectAssets()" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <option value="">-- Выберите проект --</option>
+            </select>
+        </div>
+
+        <!-- Assets Selection (Hidden until project selected) -->
+        <div id="assetsSection" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-layer-group mr-2 text-blue-600"></i>
+                    Шаг 2: Выберите материалы
+                </h2>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <!-- Hooks -->
+                    <div class="border rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-lg text-purple-600">
+                                <i class="fas fa-bullhorn mr-2"></i>Hooks
+                            </h3>
+                            <span id="hooksCount" class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">0</span>
+                        </div>
+                        <div class="mb-3">
+                            <button onclick="selectAllHooks()" class="text-sm text-purple-600 hover:text-purple-800">
+                                Выбрать все
+                            </button>
+                            <span class="mx-2">|</span>
+                            <button onclick="deselectAllHooks()" class="text-sm text-gray-600 hover:text-gray-800">
+                                Снять все
+                            </button>
+                        </div>
+                        <div id="hooksList" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Mids -->
+                    <div class="border rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-lg text-blue-600">
+                                <i class="fas fa-film mr-2"></i>Mids
+                            </h3>
+                            <span id="midsCount" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">0</span>
+                        </div>
+                        <div class="mb-3">
+                            <button onclick="selectAllMids()" class="text-sm text-blue-600 hover:text-blue-800">
+                                Выбрать все
+                            </button>
+                            <span class="mx-2">|</span>
+                            <button onclick="deselectAllMids()" class="text-sm text-gray-600 hover:text-gray-800">
+                                Снять все
+                            </button>
+                        </div>
+                        <div id="midsList" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- CTAs -->
+                    <div class="border rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-lg text-green-600">
+                                <i class="fas fa-hand-point-up mr-2"></i>CTAs
+                            </h3>
+                            <span id="ctasCount" class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">0</span>
+                        </div>
+                        <div class="mb-3">
+                            <button onclick="selectAllCtas()" class="text-sm text-green-600 hover:text-green-800">
+                                Выбрать все
+                            </button>
+                            <span class="mx-2">|</span>
+                            <button onclick="deselectAllCtas()" class="text-sm text-gray-600 hover:text-gray-800">
+                                Снять все
+                            </button>
+                        </div>
+                        <div id="ctasList" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculator and Generate -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-6 text-white mb-8">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">
+                            <i class="fas fa-calculator mr-2"></i>Калькулятор комбинаций
+                        </h3>
+                        <div class="bg-white/20 rounded-lg p-4 backdrop-blur">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold mb-2">
+                                    <span id="selectedHooks">0</span> × 
+                                    <span id="selectedMids">0</span> × 
+                                    <span id="selectedCtas">0</span>
+                                </div>
+                                <div class="text-sm opacity-90 mb-3">Hooks × Mids × CTAs</div>
+                                <div class="border-t border-white/30 pt-3">
+                                    <div class="text-5xl font-bold">
+                                        <span id="totalCombinations">0</span>
+                                    </div>
+                                    <div class="text-sm opacity-90 mt-2">мастер-роликов будет создано</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <button id="generateBtn" onclick="generateCombinations()" disabled
+                                class="w-full px-8 py-4 bg-white text-purple-600 font-bold text-lg rounded-lg 
+                                       hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-play mr-2"></i>Создать комбинации
+                        </button>
+                        <p class="text-sm text-white/80 mt-3 text-center">
+                            Выберите хотя бы по одному материалу каждого типа
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Jobs -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-tasks mr-2 text-blue-600"></i>
+                    Активные задания
+                </h2>
+                <div id="jobsList" class="space-y-4">
+                    <!-- Filled dynamically -->
+                    <p class="text-gray-500 text-center py-8">Нет активных заданий</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProjectId = null;
+        let allAssets = [];
+
+        // Load projects on page load
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('projectSelect');
+                    select.innerHTML = '<option value="">-- Выберите проект --</option>' +
+                        data.projects.map(p => `
+                            <option value="${p.project_id}">${p.name}</option>
+                        `).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки проектов:', error);
+            }
+        }
+
+        // Load project assets
+        async function loadProjectAssets() {
+            const projectId = document.getElementById('projectSelect').value;
+            
+            if (!projectId) {
+                document.getElementById('assetsSection').classList.add('hidden');
+                return;
+            }
+
+            currentProjectId = projectId;
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}/assets`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    allAssets = data.assets;
+                    
+                    const hooks = allAssets.filter(a => a.asset_type === 'hook');
+                    const mids = allAssets.filter(a => a.asset_type === 'mid');
+                    const ctas = allAssets.filter(a => a.asset_type === 'cta');
+                    
+                    renderAssets('hooksList', hooks, 'hook');
+                    renderAssets('midsList', mids, 'mid');
+                    renderAssets('ctasList', ctas, 'cta');
+                    
+                    document.getElementById('hooksCount').textContent = hooks.length;
+                    document.getElementById('midsCount').textContent = mids.length;
+                    document.getElementById('ctasCount').textContent = ctas.length;
+                    
+                    document.getElementById('assetsSection').classList.remove('hidden');
+                    updateCalculator();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки материалов:', error);
+                alert('Ошибка загрузки материалов');
+            }
+        }
+
+        // Render assets list
+        function renderAssets(containerId, assets, type) {
+            const container = document.getElementById(containerId);
+            
+            if (assets.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Нет материалов</p>';
+                return;
+            }
+            
+            container.innerHTML = assets.map(asset => `
+                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <input type="checkbox" value="${asset.asset_id}" 
+                           onchange="updateCalculator()"
+                           class="mr-2 ${type}-checkbox">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate">${asset.original_filename || asset.asset_id}</div>
+                        <div class="text-xs text-gray-500">${(asset.size / 1024 / 1024).toFixed(2)} MB</div>
+                    </div>
+                </label>
+            `).join('');
+        }
+
+        // Select/Deselect helpers
+        function selectAllHooks() {
+            document.querySelectorAll('.hook-checkbox').forEach(cb => cb.checked = true);
+            updateCalculator();
+        }
+        function deselectAllHooks() {
+            document.querySelectorAll('.hook-checkbox').forEach(cb => cb.checked = false);
+            updateCalculator();
+        }
+        function selectAllMids() {
+            document.querySelectorAll('.mid-checkbox').forEach(cb => cb.checked = true);
+            updateCalculator();
+        }
+        function deselectAllMids() {
+            document.querySelectorAll('.mid-checkbox').forEach(cb => cb.checked = false);
+            updateCalculator();
+        }
+        function selectAllCtas() {
+            document.querySelectorAll('.cta-checkbox').forEach(cb => cb.checked = true);
+            updateCalculator();
+        }
+        function deselectAllCtas() {
+            document.querySelectorAll('.cta-checkbox').forEach(cb => cb.checked = false);
+            updateCalculator();
+        }
+
+        // Update calculator
+        function updateCalculator() {
+            const hooksCount = document.querySelectorAll('.hook-checkbox:checked').length;
+            const midsCount = document.querySelectorAll('.mid-checkbox:checked').length;
+            const ctasCount = document.querySelectorAll('.cta-checkbox:checked').length;
+            
+            const total = hooksCount * midsCount * ctasCount;
+            
+            document.getElementById('selectedHooks').textContent = hooksCount;
+            document.getElementById('selectedMids').textContent = midsCount;
+            document.getElementById('selectedCtas').textContent = ctasCount;
+            document.getElementById('totalCombinations').textContent = total;
+            
+            const generateBtn = document.getElementById('generateBtn');
+            generateBtn.disabled = total === 0;
+        }
+
+        // Generate combinations
+        async function generateCombinations() {
+            const selectedHooks = Array.from(document.querySelectorAll('.hook-checkbox:checked')).map(cb => cb.value);
+            const selectedMids = Array.from(document.querySelectorAll('.mid-checkbox:checked')).map(cb => cb.value);
+            const selectedCtas = Array.from(document.querySelectorAll('.cta-checkbox:checked')).map(cb => cb.value);
+            
+            if (selectedHooks.length === 0 || selectedMids.length === 0 || selectedCtas.length === 0) {
+                alert('Выберите хотя бы по одному материалу каждого типа');
+                return;
+            }
+            
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Создание...';
+            
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/generate-combinations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selected_hooks: selectedHooks,
+                        selected_mids: selectedMids,
+                        selected_ctas: selectedCtas
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Задание создано!\n\nJob ID: ${data.job_id}\nБудет создано: ${data.total_combinations} комбинаций`);
+                    
+                    // Reset selections
+                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                    updateCalculator();
+                    
+                    // Reload jobs
+                    loadActiveJobs();
+                } else {
+                    alert('❌ Ошибка: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка создания задания');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>Создать комбинации';
+            }
+        }
+
+        // Load active jobs
+        async function loadActiveJobs() {
+            if (!currentProjectId) return;
+            
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/combination-jobs`);
+                const data = await response.json();
+                
+                if (data.success && data.jobs.length > 0) {
+                    const container = document.getElementById('jobsList');
+                    container.innerHTML = data.jobs.map(job => `
+                        <div class="border rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">Job ID: ${job.job_id}</div>
+                                    <div class="text-sm text-gray-600">
+                                        Статус: <span class="font-semibold ${getStatusColor(job.status)}">${getStatusText(job.status)}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Создано: ${new Date(job.created_at).toLocaleString('ru-RU')}
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-purple-600">${job.total_combinations || 0}</div>
+                                    <div class="text-xs text-gray-500">комбинаций</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки заданий:', error);
+            }
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'pending': 'text-yellow-600',
+                'processing': 'text-blue-600',
+                'completed': 'text-green-600',
+                'failed': 'text-red-600'
+            };
+            return colors[status] || 'text-gray-600';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'pending': 'Ожидание',
+                'processing': 'Обработка',
+                'completed': 'Завершено',
+                'failed': 'Ошибка'
+            };
+            return texts[status] || status;
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadProjects();
+            
+            // Автозагрузка проекта из URL параметра
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project');
+            
+            if (projectId) {
+                const selectElement = document.getElementById('projectSelect');
+                selectElement.value = projectId;
+                await loadProjectAssets();
+            }
+        });
+        });
+    </script>
+</body>
+</html>

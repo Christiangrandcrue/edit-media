@@ -1,0 +1,30 @@
+{
+  "name": "synthnova-vps-backend",
+  "version": "2.0.0",
+  "description": "VPS Backend for Synthnova Video Uniqualizer with WebSocket",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/db/migrate.js",
+    "seed": "node src/db/seed.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.971.0",
+    "@aws-sdk/lib-storage": "^3.971.0",
+    "@aws-sdk/s3-request-presigner": "^3.971.0",
+    "archiver": "^6.0.1",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
